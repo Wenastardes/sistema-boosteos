@@ -425,6 +425,8 @@ def inicializar_base_datos():
     except Exception as e:
         print(f"Error inicializando BD: {e}")
 
+inicializar_base_datos()
+
 if __name__ == '__main__':
     inicializar_base_datos()
     import os
