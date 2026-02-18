@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Boosteos{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="text-white fw-bold">
+            <i class="fas fa-chart-line"></i> Dashboard
+        </h1>
+        <p class="text-white opacity-75">Bienvenido, {{ session.nombre_completo }}!</p>
+    </div>
+</div>
+
+<!-- Mis Estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="stat-card">
+            <i class="fas fa-list-check fa-2x mb-2"></i>
+            <p class="mb-1">Mis Boosteos</p>
+            <h3>{{ mis_stats.total }}</h3>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+            <p class="mb-1">Total Ganado</p>
+            <h3>${{ "%.2f"|format(mis_stats.total_ganado|float) }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas Admin -->
+{% if session.es_admin and stats_generales %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                <h5 class="mb-0">
+                    <i class="fas fa-crown"></i> Estadísticas Generales (Admin)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-4">
+                    <div class="col-md-6">
+                        <h2 class="text-primary fw-bold">{{ stats_generales.total_boosteos }}</h2>
+                        <p class="text-muted">Total de Boosteos</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h2 class="text-success fw-bold">${{ "%.2f"|format(stats_generales.total_general|float) }}</h2>
+                        <p class="text-muted">Total General</p>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-3">Estadísticas por Usuario:</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th class="text-center">Boosteos</th>
+                                <th class="text-end">Total Ganado</th>
+                                <th class="text-end">Promedio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in usuarios_stats %}
+                            <tr>
+                                <td><strong>{{ user.nombre_completo }}</strong></td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">{{ user.total }}</span>
+                                </td>
+                                <td class="text-end text-success fw-bold">
+                                    ${{ "%.2f"|format(user.ganado|float) }}
+                                </td>
+                                <td class="text-end text-muted">
+                                    ${{ "%.2f"|format((user.ganado|float / user.total) if user.total > 0 else 0) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Acciones Rápidas -->
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Registrar Boosteo</h5>
+                <p class="card-text text-muted">Agrega un nuevo boosteo al sistema</p>
+                <a href="{{ url_for('registrar_boosteo') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Registrar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-list fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Mis Boosteos</h5>
+                <p class="card-text text-muted">Ve tu historial de boosteos</p>
+                <a href="{{ url_for('mis_boosteos') }}" class="btn btn-success">
+                    <i class="fas fa-eye"></i> Ver Míos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
+                <h5 class="card-title">Todos los Boosteos</h5>
+                <p class="card-text text-muted">Ve el historial completo</p>
+                <a href="{{ url_for('todos_boosteos') }}" class="btn btn-info text-white">
+                    <i class="fas fa-globe"></i> Ver Todos
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Boosteo - Sistema de Boosteos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus-circle"></i> Registrar Nuevo Boosteo
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-user"></i> Nombre del Cliente *
+                            </label>
+                            <input type="text" class="form-control" name="nombre_cliente" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-dollar-sign"></i> Precio *
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" class="form-control" name="precio" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-arrow-up"></i> Rango Inicial *
+                            </label>
+                            <select class="form-select" name="rango_inicio" required>
+                                <option value="">Selecciona...</option>
+                                <option value="Hierro I">Hierro I</option>
+                                <option value="Hierro II">Hierro II</option>
+                                <option value="Hierro III">Hierro III</option>
+                                <option value="Bronce I">Bronce I</option>
+                                <option value="Bronce II">Bronce II</option>
+                                <option value="Bronce III">Bronce III</option>
+                                <option value="Plata I">Plata I</option>
+                                <option value="Plata II">Plata II</option>
+                                <option value="Plata III">Plata III</option>
+                                <option value="Oro I">Oro I</option>
+                                <option value="Oro II">Oro II</option>
+                                <option value="Oro III">Oro III</option>
+                                <option value="Platino I">Platino I</option>
+                                <option value="Platino II">Platino II</option>
+                                <option value="Platino III">Platino III</option>
+                                <option value="Diamante I">Diamante I</option>
+                                <option value="Diamante II">Diamante II</option>
+                                <option value="Diamante III">Diamante III</option>
+                                <option value="Maestro">Maestro</option>
+                                <option value="Gran Maestro">Gran Maestro</option>
+                                <option value="Retador">Retador</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-trophy"></i> Rango Final *
+                            </label>
+                            <select class="form-select" name="rango_final" required>
+                                <option value="">Selecciona...</option>
+                                <option value="Hierro I">Hierro I</option>
+                                <option value="Hierro II">Hierro II</option>
+                                <option value="Hierro III">Hierro III</option>
+                                <option value="Bronce I">Bronce I</option>
+                                <option value="Bronce II">Bronce II</option>
+                                <option value="Bronce III">Bronce III</option>
+                                <option value="Plata I">Plata I</option>
+                                <option value="Plata II">Plata II</option>
+                                <option value="Plata III">Plata III</option>
+                                <option value="Oro I">Oro I</option>
+                                <option value="Oro II">Oro II</option>
+                                <option value="Oro III">Oro III</option>
+                                <option value="Platino I">Platino I</option>
+                                <option value="Platino II">Platino II</option>
+                                <option value="Platino III">Platino III</option>
+                                <option value="Diamante I">Diamante I</option>
+                                <option value="Diamante II">Diamante II</option>
+                                <option value="Diamante III">Diamante III</option>
+                                <option value="Maestro">Maestro</option>
+                                <option value="Gran Maestro">Gran Maestro</option>
+                                <option value="Retador">Retador</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-sticky-note"></i> Notas Adicionales
+                        </label>
+                        <textarea class="form-control" name="notas" rows="3" placeholder="Agrega cualquier información adicional..."></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Registrar Boosteo
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

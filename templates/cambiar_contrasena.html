@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Cambiar Contraseña - Sistema de Boosteos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                <h4 class="mb-0">
+                    <i class="fas fa-key"></i> Cambiar Contraseña
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-lock"></i> Contraseña Actual *
+                        </label>
+                        <input type="password" class="form-control" name="password_actual" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-key"></i> Nueva Contraseña *
+                        </label>
+                        <input type="password" class="form-control" name="nueva_password" required id="nueva_password">
+                        <div class="form-text">Mínimo 6 caracteres</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-check-circle"></i> Confirmar Nueva Contraseña *
+                        </label>
+                        <input type="password" class="form-control" name="confirmar_password" required id="confirmar_password">
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Cambiar Contraseña
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if session.es_admin and session.username == 'admin' %}
+        <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Importante:</strong> Se recomienda cambiar la contraseña por defecto del administrador.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    const nueva = document.getElementById('nueva_password').value;
+    const confirmar = document.getElementById('confirmar_password').value;
+    
+    if (nueva.length < 6) {
+        e.preventDefault();
+        alert('La contraseña debe tener al menos 6 caracteres');
+        return;
+    }
+    
+    if (nueva !== confirmar) {
+        e.preventDefault();
+        alert('Las contraseñas no coinciden');
+        return;
+    }
+});
+</script>
+{% endblock %}

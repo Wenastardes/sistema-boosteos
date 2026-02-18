@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Boosteos - Sistema de Boosteos{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="text-white fw-bold">
+            <i class="fas fa-list"></i> Mis Boosteos
+        </h1>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('registrar_boosteo') }}" class="btn btn-light">
+            <i class="fas fa-plus"></i> Registrar Nuevo
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if boosteos|length == 0 %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">No tienes boosteos registrados aún</h5>
+            <p class="text-muted">Comienza registrando tu primer boosteo</p>
+            <a href="{{ url_for('registrar_boosteo') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Registrar Boosteo
+            </a>
+        </div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Precio</th>
+                        <th>Rango</th>
+                        <th>Fecha</th>
+                        <th>Notas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for boost in boosteos %}
+                    <tr>
+                        <td><span class="badge bg-primary">#{{ boost.id }}</span></td>
+                        <td><strong>{{ boost.nombre_cliente }}</strong></td>
+                        <td class="text-success fw-bold">${{ "%.2f"|format(boost.precio|float) }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ boost.rango_inicio }}</span>
+                            <i class="fas fa-arrow-right mx-1"></i>
+                            <span class="badge bg-warning text-dark">{{ boost.rango_final }}</span>
+                        </td>
+                        <td class="text-muted">
+                            <small>{{ boost.fecha_registro.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </td>
+                        <td>
+                            {% if boost.notas %}
+                            <button class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="{{ boost.notas }}">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-active">
+                        <td colspan="2" class="text-end"><strong>TOTAL:</strong></td>
+                        <td colspan="4" class="text-success fw-bold fs-5">
+                            ${{ "%.2f"|format(total) }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Inicializar tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>
+{% endblock %}
