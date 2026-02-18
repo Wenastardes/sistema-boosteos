@@ -367,9 +367,86 @@ def cambiar_contrasena():
 # INICIAR APLICACIÓN
 # ============================================================================
 
+def inicializar_base_datos():
+    """Inicializa las tablas y usuario admin si no existen"""
+    import mysql.connector
+    import hashlib
+    
+    DB_CONFIG_INIT = {
+        'host': os.environ.get('DB_HOST', 'mysql.railway.internal'),
+        'database': os.environ.get('DB_NAME', 'railway'),
+        'user': os.environ.get('DB_USER', 'root'),
+        'password': os.environ.get('DB_PASSWORD', ''),
+        'port': int(os.environ.get('DB_PORT', '3306'))
+    }
+    
+    try:
+        print("=== INICIANDO BASE DE DATOS ===")
+        conexion = mysql.connector.connect(**DB_CONFIG_INIT)
+        cursor = conexion.cursor()
+        
+        # Crear tabla usuarios
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre_usuario VARCHAR(50) UNIQUE NOT NULL,
+                password_hash VARCHAR(64) NOT NULL,
+                nombre_completo VARCHAR(100) NOT NULL,
+                es_admin BOOLEAN DEFAULT FALSE
+            )
+        ''')
+        
+        # Crear tabla boosteos
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS boosteos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT NOT NULL,
+                nombre_cliente VARCHAR(100) NOT NULL,
+                precio DECIMAL(10, 2) NOT NULL,
+                rango_inicio VARCHAR(50) NOT NULL,
+                rango_final VARCHAR(50) NOT NULL,
+                fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                notas TEXT,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            )
+        ''')
+        
+        # Crear usuario admin
+        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = 'admin'")
+        if cursor.fetchone()[0] == 0:
+            admin_hash = hashlib.sha256('admin123'.encode()).hexdigest()
+            cursor.execute(
+                "INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (%s, %s, %s, %s)",
+                ('admin', admin_hash, 'Administrador', True)
+            )
+            print("✓ Usuario admin creado")
+        
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        print("=== BASE DE DATOS LISTA ===")
+    except Exception as e:
+        print(f"Error inicializando BD: {e}")
+
 if __name__ == '__main__':
+    # Inicializar base de datos al arrancar
+    inicializar_base_datos()
+    
+    # Iniciar servidor
     import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+```
+
+6. **Commit changes**
+
+---
+
+### **PASO 2: Regresar el Procfile a la normalidad**
+
+1. Abre el archivo **`Procfile`** en GitHub
+2. Edítalo y cámbialo a:
+```
+web: gunicorn app:app
 
 #Forzar rebuild#
