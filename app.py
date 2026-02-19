@@ -4,23 +4,22 @@ from mysql.connector import Error
 import hashlib
 from datetime import datetime, timedelta
 from functools import wraps
+import os
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_muy_segura_12345'  # Cambia esto por una clave segura
 app.permanent_session_lifetime = timedelta(hours=2)  # Sesión dura 2 horas
 
 # ============================================================================
-# CONFIGURACIÓN DE BASE DE DATOS MySQL - AIVEN
+# CONFIGURACIÓN DE BASE DE DATOS MySQL - ACTUALIZADA A RAILWAY
 # ============================================================================
-import os
-
 DB_CONFIG = {
-    'host': os.environ.get('DB_HOST', 'mysql-3a8737ea-sistemaboosteos.k.aivencloud.com'),
-    'database': os.environ.get('DB_NAME', 'defaultdb'),
-    'user': os.environ.get('DB_USER', 'avnadmin'),
-    'password': os.environ.get('DB_PASSWORD', ''),
-    'port': int(os.environ.get('DB_PORT', '15658')),
-    'ssl_disabled': False
+    'host': os.environ.get('DB_HOST', 'switchback.proxy.rlwy.net'),
+    'database': os.environ.get('DB_NAME', 'railway'),
+    'user': os.environ.get('DB_USER', 'root'),
+    'password': os.environ.get('DB_PASSWORD', 'bDuxDRHyGYYUQpSMmGFDYWIOdWwFuZqS'),
+    'port': int(os.environ.get('DB_PORT', '11963')),
+    'ssl_disabled': True
 }
 
 # ============================================================================
@@ -146,7 +145,6 @@ def dashboard():
     cursor = conexion.cursor(dictionary=True)
     
     try:
-        # Estadísticas del usuario actual
         cursor.execute('''
             SELECT COUNT(*) as total, COALESCE(SUM(precio), 0) as total_ganado
             FROM boosteos
@@ -154,7 +152,6 @@ def dashboard():
         ''', (session['user_id'],))
         mis_stats = cursor.fetchone()
         
-        # Estadísticas generales (solo si es admin)
         stats_generales = None
         if session.get('es_admin'):
             cursor.execute('''
@@ -246,8 +243,6 @@ def mis_boosteos():
         ''', (session['user_id'],))
         
         boosteos = cursor.fetchall()
-        
-        # Calcular total
         total = sum(float(b['precio']) for b in boosteos)
         
         return render_template('mis_boosteos.html', boosteos=boosteos, total=total)
@@ -261,7 +256,7 @@ def mis_boosteos():
 @app.route('/todos-boosteos')
 @login_required
 def todos_boosteos():
-    """Ver todos los boosteos del sistema"""
+    """Ver todos los boosteos del sistema con identificación de autor"""
     conexion = crear_conexion()
     if not conexion:
         flash('Error al conectar con la base de datos', 'error')
@@ -270,9 +265,10 @@ def todos_boosteos():
     cursor = conexion.cursor(dictionary=True)
     
     try:
+        # La consulta ahora trae el ID del usuario para comparar
         cursor.execute('''
-            SELECT b.id, u.nombre_completo as usuario, b.nombre_cliente, b.precio, 
-                   b.rango_inicio, b.rango_final, b.fecha_registro, b.notas
+            SELECT b.id, b.usuario_id, u.nombre_completo as usuario, b.nombre_cliente, 
+                   b.precio, b.rango_inicio, b.rango_final, b.fecha_registro, b.notas
             FROM boosteos b
             JOIN usuarios u ON b.usuario_id = u.id
             ORDER BY b.fecha_registro DESC
@@ -280,7 +276,13 @@ def todos_boosteos():
         
         boosteos = cursor.fetchall()
         
-        # Calcular total
+        # Marcamos cada registro: si el ID coincide con el del usuario logueado, dice "Yo"
+        for b in boosteos:
+            if b['usuario_id'] == session['user_id']:
+                b['autor_display'] = "Yo"
+            else:
+                b['autor_display'] = b['usuario']
+        
         total = sum(float(b['precio']) for b in boosteos)
         
         return render_template('todos_boosteos.html', boosteos=boosteos, total=total)
@@ -290,10 +292,6 @@ def todos_boosteos():
     finally:
         cursor.close()
         conexion.close()
-
-# ============================================================================
-# RUTAS DE ADMINISTRADOR
-# ============================================================================
 
 @app.route('/admin/eliminar/<int:boosteo_id>', methods=['POST'])
 @admin_required
@@ -327,18 +325,15 @@ def cambiar_contrasena():
         nueva_password = request.form.get('nueva_password')
         confirmar_password = request.form.get('confirmar_password')
         
-        # Verificar contraseña actual
         usuario = verificar_login(session['username'], password_actual)
         if not usuario:
             flash('Contraseña actual incorrecta', 'error')
             return redirect(url_for('cambiar_contrasena'))
         
-        # Verificar que las nuevas contraseñas coincidan
         if nueva_password != confirmar_password:
             flash('Las contraseñas nuevas no coinciden', 'error')
             return redirect(url_for('cambiar_contrasena'))
         
-        # Actualizar contraseña
         conexion = crear_conexion()
         if not conexion:
             flash('Error al conectar con la base de datos', 'error')
@@ -364,25 +359,15 @@ def cambiar_contrasena():
     return render_template('cambiar_contrasena.html')
 
 # ============================================================================
-# INICIAR APLICACIÓN
+# INICIAR APLICACIÓN - MODIFICADO PARA NICO Y MILCAO
 # ============================================================================
 
 def inicializar_base_datos():
-    """Inicializa las tablas y usuario admin si no existen"""
-    import mysql.connector
-    import hashlib
-    
-    DB_CONFIG_INIT = {
-        'host': os.environ.get('DB_HOST', 'mysql.railway.internal'),
-        'database': os.environ.get('DB_NAME', 'railway'),
-        'user': os.environ.get('DB_USER', 'root'),
-        'password': os.environ.get('DB_PASSWORD', ''),
-        'port': int(os.environ.get('DB_PORT', '3306'))
-    }
-    
+    """Inicializa las tablas y crea usuarios específicos si no existen"""
     try:
-        print("=== INICIANDO BASE DE DATOS ===")
-        conexion = mysql.connector.connect(**DB_CONFIG_INIT)
+        print("=== INICIANDO BASE DE DATOS EN RAILWAY ===")
+        conexion = crear_conexion()
+        if not conexion: return
         cursor = conexion.cursor()
         
         cursor.execute('''
@@ -408,15 +393,22 @@ def inicializar_base_datos():
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             )
         ''')
-        
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = 'admin'")
-        if cursor.fetchone()[0] == 0:
-            admin_hash = hashlib.sha256('admin123'.encode()).hexdigest()
-            cursor.execute(
-                "INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (%s, %s, %s, %s)",
-                ('admin', admin_hash, 'Administrador', True)
-            )
-            print("✓ Usuario admin creado")
+
+        # Creamos los 3 usuarios (admin, nico y milcao) con sus hashes
+        usuarios_lista = [
+            {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': True},
+            {'u': 'nico', 'p': 'nico123', 'n': 'Nicolas Silva', 'a': False},
+            {'u': 'milcao', 'p': 'milcao123', 'n': 'Milcao Osorno', 'a': False}
+        ]
+
+        for user in usuarios_lista:
+            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = %s", (user['u'],))
+            if cursor.fetchone()[0] == 0:
+                h = hashlib.sha256(user['p'].encode()).hexdigest()
+                cursor.execute(
+                    "INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (%s, %s, %s, %s)",
+                    (user['u'], h, user['n'], user['a'])
+                )
         
         conexion.commit()
         cursor.close()
@@ -425,10 +417,7 @@ def inicializar_base_datos():
     except Exception as e:
         print(f"Error inicializando BD: {e}")
 
-inicializar_base_datos()
-
 if __name__ == '__main__':
     inicializar_base_datos()
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
