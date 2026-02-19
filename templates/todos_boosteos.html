@@ -40,6 +40,7 @@
                     <tr>
                         <td><span class="badge bg-primary">#{{ boost.id }}</span></td>
                         <td>
+                            {# Mostramos el nombre de la persona que subió el boosteo directamente #}
                             <span class="badge bg-info text-dark">{{ boost.usuario }}</span>
                         </td>
                         <td><strong>{{ boost.nombre_cliente }}</strong></td>
@@ -85,7 +86,6 @@
     </div>
 </div>
 
-<!-- Modal de Confirmación -->
 <div class="modal fade" id="modalEliminar" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -115,17 +115,14 @@
 
 {% block scripts %}
 <script>
-// Inicializar tooltips
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
   return new bootstrap.Tooltip(tooltipTriggerEl)
 })
 
-// Confirmar eliminación
 function confirmarEliminar(id, cliente) {
     document.getElementById('detalleBoosteo').textContent = `ID: #${id} - Cliente: ${cliente}`;
     document.getElementById('formEliminar').action = `/admin/eliminar/${id}`;
-    
     var modal = new bootstrap.Modal(document.getElementById('modalEliminar'));
     modal.show();
 }
