@@ -122,6 +122,33 @@ def logout():
     flash('Sesión cerrada exitosamente', 'success')
     return redirect(url_for('login'))
 
+# ESTA ES LA FUNCIÓN QUE FALTABA Y HACÍA EXPLOTAR RAILWAY
+@app.route('/cambiar-contrasena', methods=['GET', 'POST'])
+@login_required
+def cambiar_contrasena():
+    """Ruta para que los usuarios cambien su clave"""
+    if request.method == 'POST':
+        password_actual = request.form.get('password_actual')
+        nueva_password = request.form.get('nueva_password')
+        
+        usuario = verificar_login(session['username'], password_actual)
+        if not usuario:
+            flash('Contraseña actual incorrecta', 'error')
+            return redirect(url_for('cambiar_contrasena'))
+        
+        conexion = crear_conexion()
+        cursor = conexion.cursor()
+        try:
+            nuevo_hash = hash_password(nueva_password)
+            cursor.execute("UPDATE usuarios SET password_hash = %s WHERE id = %s", (nuevo_hash, session['user_id']))
+            conexion.commit()
+            flash('Contraseña actualizada correctamente', 'success')
+            return redirect(url_for('dashboard'))
+        finally:
+            cursor.close()
+            conexion.close()
+    return render_template('cambiar_contrasena.html')
+
 # ============================================================================
 # RUTAS PRINCIPALES
 # ============================================================================
@@ -171,7 +198,7 @@ def registrar_boosteo():
         rango_inicio = request.form.get('rango_inicio')
         rango_final = request.form.get('rango_final')
         notas = request.form.get('notas', '')
-        completado = request.form.get('completado', 0) # Recibe el estado
+        completado = request.form.get('completado', 0)
         
         conexion = crear_conexion()
         if not conexion: return redirect(url_for('registrar_boosteo'))
@@ -192,18 +219,14 @@ def registrar_boosteo():
 @app.route('/editar/<int:boosteo_id>', methods=['GET', 'POST'])
 @login_required
 def editar_boosteo(boosteo_id):
-    """Permite al autor o al admin editar un boosteo"""
     conexion = crear_conexion()
     cursor = conexion.cursor(dictionary=True)
     try:
         cursor.execute("SELECT * FROM boosteos WHERE id = %s", (boosteo_id,))
         boosteo = cursor.fetchone()
-
-        # SEGURIDAD: Solo el dueño o el admin pueden entrar
         if not boosteo or (boosteo['usuario_id'] != session['user_id'] and not session.get('es_admin')):
             flash('No tienes permiso para editar este registro', 'error')
             return redirect(url_for('mis_boosteos'))
-
         if request.method == 'POST':
             nombre_cliente = request.form.get('nombre_cliente')
             precio = request.form.get('precio')
@@ -211,7 +234,6 @@ def editar_boosteo(boosteo_id):
             rango_final = request.form.get('rango_final')
             notas = request.form.get('notas', '')
             completado = request.form.get('completado', 0)
-
             cursor.execute('''
                 UPDATE boosteos 
                 SET nombre_cliente=%s, precio=%s, rango_inicio=%s, rango_final=%s, notas=%s, completado=%s
@@ -220,7 +242,6 @@ def editar_boosteo(boosteo_id):
             conexion.commit()
             flash('¡Registro actualizado!', 'success')
             return redirect(url_for('mis_boosteos'))
-
         return render_template('editar.html', boosteo=boosteo)
     finally:
         cursor.close()
@@ -229,21 +250,17 @@ def editar_boosteo(boosteo_id):
 @app.route('/eliminar/<int:boosteo_id>', methods=['POST'])
 @login_required
 def eliminar_boosteo(boosteo_id):
-    """Permite al autor o al admin eliminar un boosteo"""
     conexion = crear_conexion()
     cursor = conexion.cursor(dictionary=True)
     try:
         cursor.execute("SELECT usuario_id FROM boosteos WHERE id = %s", (boosteo_id,))
         boosteo = cursor.fetchone()
-
-        # SEGURIDAD: Solo el dueño o el admin pueden borrar
         if not boosteo or (boosteo['usuario_id'] != session['user_id'] and not session.get('es_admin')):
             flash('No tienes permiso para eliminar este registro', 'error')
         else:
             cursor.execute("DELETE FROM boosteos WHERE id = %s", (boosteo_id,))
             conexion.commit()
             flash('Registro eliminado correctamente', 'success')
-            
         return redirect(request.referrer or url_for('mis_boosteos'))
     finally:
         cursor.close()
@@ -275,8 +292,6 @@ def todos_boosteos():
             ORDER BY b.fecha_registro DESC
         ''')
         boosteos = cursor.fetchall()
-        for b in boosteos:
-            b['autor_display'] = "Yo" if b['usuario_id'] == session['user_id'] else b['usuario']
         total = sum(float(b['precio']) for b in boosteos)
         return render_template('todos_boosteos.html', boosteos=boosteos, total=total)
     finally:
@@ -301,7 +316,6 @@ def inicializar_base_datos():
                 es_admin BOOLEAN DEFAULT FALSE
             )
         ''')
-        # Se añade la columna 'completado' si no existe
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS boosteos (
                 id INT AUTO_INCREMENT PRIMARY KEY,
