@@ -36,8 +36,9 @@
                         <th>Cliente</th>
                         <th>Precio</th>
                         <th>Rango</th>
+                        <th class="text-center">Estado</th>
                         <th>Fecha</th>
-                        <th>Notas</th>
+                        <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,17 +52,25 @@
                             <i class="fas fa-arrow-right mx-1"></i>
                             <span class="badge bg-warning text-dark">{{ boost.rango_final }}</span>
                         </td>
+                        <td class="text-center">
+                            {% if boost.completado %}
+                                <i class="fas fa-circle text-success" title="Completo"></i>
+                            {% else %}
+                                <i class="fas fa-circle text-warning" title="Incompleto"></i>
+                            {% endif %}
+                        </td>
                         <td class="text-muted">
                             <small>{{ boost.fecha_registro.strftime('%d/%m/%Y %H:%M') }}</small>
                         </td>
-                        <td>
-                            {% if boost.notas %}
-                            <button class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="{{ boost.notas }}">
-                                <i class="fas fa-info-circle"></i>
-                            </button>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <a href="{{ url_for('editar_boosteo', boosteo_id=boost.id) }}" class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminar({{ boost.id }}, '{{ boost.nombre_cliente }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -69,7 +78,7 @@
                 <tfoot>
                     <tr class="table-active">
                         <td colspan="2" class="text-end"><strong>TOTAL:</strong></td>
-                        <td colspan="4" class="text-success fw-bold fs-5">
+                        <td colspan="5" class="text-success fw-bold fs-5">
                             ${{ "%.2f"|format(total) }}
                         </td>
                     </tr>
@@ -79,14 +88,40 @@
         {% endif %}
     </div>
 </div>
+
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash"></i> Eliminar Boosteo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que quieres eliminar el registro de <strong id="detalleBoosteo"></strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" id="formEliminar" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Inicializar tooltips
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-  return new bootstrap.Tooltip(tooltipTriggerEl)
+    return new bootstrap.Tooltip(tooltipTriggerEl)
 })
+
+function confirmarEliminar(id, cliente) {
+    document.getElementById('detalleBoosteo').textContent = cliente;
+    document.getElementById('formEliminar').action = `/eliminar/${id}`;
+    var modal = new bootstrap.Modal(document.getElementById('modalEliminar'));
+    modal.show();
+}
 </script>
 {% endblock %}
