@@ -1,38 +1,29 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-import mysql.connector
-from mysql.connector import Error
+import sqlite3
 import hashlib
 from datetime import datetime, timedelta
 from functools import wraps
 import os
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_muy_segura_12345'  # Cambia esto por una clave segura
-app.permanent_session_lifetime = timedelta(hours=2)  # Sesión dura 2 horas
+app.secret_key = 'tu_clave_secreta_muy_segura_12345'
+app.permanent_session_lifetime = timedelta(hours=2)
 
-# ============================================================================
-# CONFIGURACIÓN DE BASE DE DATOS MySQL - ACTUALIZADA A RAILWAY
-# ============================================================================
-DB_CONFIG = {
-    'host': os.environ.get('DB_HOST', 'switchback.proxy.rlwy.net'),
-    'database': os.environ.get('DB_NAME', 'railway'),
-    'user': os.environ.get('DB_USER', 'root'),
-    'password': os.environ.get('DB_PASSWORD', 'bDuxDRHyGYYUQpSMmGFDYWIOdWwFuZqS'),
-    'port': int(os.environ.get('DB_PORT', '11963')),
-    'ssl_disabled': True
-}
+DB_NAME = 'database.db'
 
 # ============================================================================
 # FUNCIONES DE BASE DE DATOS
 # ============================================================================
 
 def crear_conexion():
-    """Crea una conexión a la base de datos MySQL"""
+    """Crea una conexión a la base de datos SQLite"""
     try:
-        conexion = mysql.connector.connect(**DB_CONFIG)
+        conexion = sqlite3.connect(DB_NAME)
+        # Esto permite acceder a las columnas por su nombre como si fuera un diccionario
+        conexion.row_factory = sqlite3.Row
         return conexion
     except Exception as e:
-        print(f"Error al conectar a MySQL: {e}")
+        print(f"Error al conectar a SQLite: {e}")
         return None
 
 def hash_password(password):
@@ -45,16 +36,16 @@ def verificar_login(username, password):
     if not conexion:
         return None
     
-    cursor = conexion.cursor(dictionary=True)
+    cursor = conexion.cursor()
     try:
         password_hash = hash_password(password)
         cursor.execute(
-            "SELECT id, nombre_usuario, nombre_completo, es_admin FROM usuarios WHERE nombre_usuario = %s AND password_hash = %s",
+            "SELECT id, nombre_usuario, nombre_completo, es_admin FROM usuarios WHERE nombre_usuario = ? AND password_hash = ?",
             (username, password_hash)
         )
         usuario = cursor.fetchone()
         return usuario
-    except Error as e:
+    except Exception as e:
         print(f"Error: {e}")
         return None
     finally:
@@ -66,7 +57,6 @@ def verificar_login(username, password):
 # ============================================================================
 
 def login_required(f):
-    """Decorador para requerir login"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -76,7 +66,6 @@ def login_required(f):
     return decorated_function
 
 def admin_required(f):
-    """Decorador para requerir permisos de admin"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -122,11 +111,9 @@ def logout():
     flash('Sesión cerrada exitosamente', 'success')
     return redirect(url_for('login'))
 
-# ESTA ES LA FUNCIÓN QUE FALTABA Y HACÍA EXPLOTAR RAILWAY
 @app.route('/cambiar-contrasena', methods=['GET', 'POST'])
 @login_required
 def cambiar_contrasena():
-    """Ruta para que los usuarios cambien su clave"""
     if request.method == 'POST':
         password_actual = request.form.get('password_actual')
         nueva_password = request.form.get('nueva_password')
@@ -140,7 +127,7 @@ def cambiar_contrasena():
         cursor = conexion.cursor()
         try:
             nuevo_hash = hash_password(nueva_password)
-            cursor.execute("UPDATE usuarios SET password_hash = %s WHERE id = %s", (nuevo_hash, session['user_id']))
+            cursor.execute("UPDATE usuarios SET password_hash = ? WHERE id = ?", (nuevo_hash, session['user_id']))
             conexion.commit()
             flash('Contraseña actualizada correctamente', 'success')
             return redirect(url_for('dashboard'))
@@ -160,11 +147,11 @@ def dashboard():
     if not conexion:
         flash('Error al conectar con la base de datos', 'error')
         return render_template('dashboard.html', stats={})
-    cursor = conexion.cursor(dictionary=True)
+    cursor = conexion.cursor()
     try:
         cursor.execute('''
             SELECT COUNT(*) as total, COALESCE(SUM(precio), 0) as total_ganado
-            FROM boosteos WHERE usuario_id = %s
+            FROM boosteos WHERE usuario_id = ?
         ''', (session['user_id'],))
         mis_stats = cursor.fetchone()
         stats_generales = None
@@ -175,7 +162,7 @@ def dashboard():
                 SELECT u.nombre_completo, COUNT(b.id) as total, COALESCE(SUM(b.precio), 0) as ganado
                 FROM usuarios u
                 LEFT JOIN boosteos b ON u.id = b.usuario_id
-                WHERE u.es_admin = FALSE GROUP BY u.id, u.nombre_completo
+                WHERE u.es_admin = 0 GROUP BY u.id, u.nombre_completo
             ''')
             usuarios_stats = cursor.fetchall()
         else:
@@ -198,7 +185,7 @@ def registrar_boosteo():
         rango_inicio = request.form.get('rango_inicio')
         rango_final = request.form.get('rango_final')
         notas = request.form.get('notas', '')
-        completado = request.form.get('completado', 0)
+        completado = 1 if request.form.get('completado') else 0
         
         conexion = crear_conexion()
         if not conexion: return redirect(url_for('registrar_boosteo'))
@@ -206,7 +193,7 @@ def registrar_boosteo():
         try:
             cursor.execute('''
                 INSERT INTO boosteos (usuario_id, nombre_cliente, precio, rango_inicio, rango_final, notas, completado)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (session['user_id'], nombre_cliente, precio, rango_inicio, rango_final, notas, completado))
             conexion.commit()
             flash('¡Boosteo registrado exitosamente!', 'success')
@@ -220,9 +207,9 @@ def registrar_boosteo():
 @login_required
 def editar_boosteo(boosteo_id):
     conexion = crear_conexion()
-    cursor = conexion.cursor(dictionary=True)
+    cursor = conexion.cursor()
     try:
-        cursor.execute("SELECT * FROM boosteos WHERE id = %s", (boosteo_id,))
+        cursor.execute("SELECT * FROM boosteos WHERE id = ?", (boosteo_id,))
         boosteo = cursor.fetchone()
         if not boosteo or (boosteo['usuario_id'] != session['user_id'] and not session.get('es_admin')):
             flash('No tienes permiso para editar este registro', 'error')
@@ -233,11 +220,11 @@ def editar_boosteo(boosteo_id):
             rango_inicio = request.form.get('rango_inicio')
             rango_final = request.form.get('rango_final')
             notas = request.form.get('notas', '')
-            completado = request.form.get('completado', 0)
+            completado = 1 if request.form.get('completado') else 0
             cursor.execute('''
                 UPDATE boosteos 
-                SET nombre_cliente=%s, precio=%s, rango_inicio=%s, rango_final=%s, notas=%s, completado=%s
-                WHERE id=%s
+                SET nombre_cliente=?, precio=?, rango_inicio=?, rango_final=?, notas=?, completado=?
+                WHERE id=?
             ''', (nombre_cliente, precio, rango_inicio, rango_final, notas, completado, boosteo_id))
             conexion.commit()
             flash('¡Registro actualizado!', 'success')
@@ -251,14 +238,14 @@ def editar_boosteo(boosteo_id):
 @login_required
 def eliminar_boosteo(boosteo_id):
     conexion = crear_conexion()
-    cursor = conexion.cursor(dictionary=True)
+    cursor = conexion.cursor()
     try:
-        cursor.execute("SELECT usuario_id FROM boosteos WHERE id = %s", (boosteo_id,))
+        cursor.execute("SELECT usuario_id FROM boosteos WHERE id = ?", (boosteo_id,))
         boosteo = cursor.fetchone()
         if not boosteo or (boosteo['usuario_id'] != session['user_id'] and not session.get('es_admin')):
             flash('No tienes permiso para eliminar este registro', 'error')
         else:
-            cursor.execute("DELETE FROM boosteos WHERE id = %s", (boosteo_id,))
+            cursor.execute("DELETE FROM boosteos WHERE id = ?", (boosteo_id,))
             conexion.commit()
             flash('Registro eliminado correctamente', 'success')
         return redirect(request.referrer or url_for('mis_boosteos'))
@@ -270,9 +257,9 @@ def eliminar_boosteo(boosteo_id):
 @login_required
 def mis_boosteos():
     conexion = crear_conexion()
-    cursor = conexion.cursor(dictionary=True)
+    cursor = conexion.cursor()
     try:
-        cursor.execute('SELECT * FROM boosteos WHERE usuario_id = %s ORDER BY fecha_registro DESC', (session['user_id'],))
+        cursor.execute('SELECT * FROM boosteos WHERE usuario_id = ? ORDER BY fecha_registro DESC', (session['user_id'],))
         boosteos = cursor.fetchall()
         total = sum(float(b['precio']) for b in boosteos)
         return render_template('mis_boosteos.html', boosteos=boosteos, total=total)
@@ -284,7 +271,7 @@ def mis_boosteos():
 @login_required
 def todos_boosteos():
     conexion = crear_conexion()
-    cursor = conexion.cursor(dictionary=True)
+    cursor = conexion.cursor()
     try:
         cursor.execute('''
             SELECT b.*, u.nombre_completo as usuario 
@@ -299,53 +286,53 @@ def todos_boosteos():
         conexion.close()
 
 # ============================================================================
-# INICIAR APLICACIÓN E INICIALIZACIÓN
+# INICIALIZACIÓN AUTOMÁTICA AL ARRANCAR
 # ============================================================================
 
 def inicializar_base_datos():
+    conexion = crear_conexion()
+    if not conexion: return
+    cursor = conexion.cursor()
     try:
-        conexion = crear_conexion()
-        if not conexion: return
-        cursor = conexion.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS usuarios (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nombre_usuario VARCHAR(50) UNIQUE NOT NULL,
-                password_hash VARCHAR(64) NOT NULL,
-                nombre_completo VARCHAR(100) NOT NULL,
-                es_admin BOOLEAN DEFAULT FALSE
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre_usuario TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                nombre_completo TEXT NOT NULL,
+                es_admin BOOLEAN DEFAULT 0
             )
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS boosteos (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                usuario_id INT NOT NULL,
-                nombre_cliente VARCHAR(100) NOT NULL,
-                precio DECIMAL(10, 2) NOT NULL,
-                rango_inicio VARCHAR(50) NOT NULL,
-                rango_final VARCHAR(50) NOT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                nombre_cliente TEXT NOT NULL,
+                precio REAL NOT NULL,
+                rango_inicio TEXT NOT NULL,
+                rango_final TEXT NOT NULL,
                 fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 notas TEXT,
-                completado BOOLEAN DEFAULT FALSE,
+                completado BOOLEAN DEFAULT 0,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             )
         ''')
         usuarios_lista = [
-            {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': True},
-            {'u': 'nico', 'p': 'nico123', 'n': 'nico', 'a': False},
-            {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': False}
+            {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': 1},
+            {'u': 'nico', 'p': 'nico123', 'n': 'nico', 'a': 0},
+            {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': 0}
         ]
         for user in usuarios_lista:
-            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = %s", (user['u'],))
+            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = ?", (user['u'],))
             if cursor.fetchone()[0] == 0:
                 h = hashlib.sha256(user['p'].encode()).hexdigest()
-                cursor.execute("INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (%s, %s, %s, %s)", (user['u'], h, user['n'], user['a']))
+                cursor.execute("INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (?, ?, ?, ?)", (user['u'], h, user['n'], user['a']))
         conexion.commit()
-    except Exception as e: print(f"Error: {e}")
+    except Exception as e:
+        print(f"Error al inicializar DB: {e}")
     finally:
-        if 'conexion' in locals() and conexion.is_connected():
-            cursor.close()
-            conexion.close()
+        cursor.close()
+        conexion.close()
 
 if __name__ == '__main__':
     inicializar_base_datos()

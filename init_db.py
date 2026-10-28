@@ -1,23 +1,15 @@
-import mysql.connector
+import sqlite3
 import hashlib
 
-# Valores directos (temporalmente)
-DB_CONFIG = {
-    'host': 'mysql.railway.internal',
-    'database': 'railway',
-    'user': 'root',
-    'password': 'hFGqCVVPOBMdZjUVjHNnbPdXUftu5Rbr',
-    'port': 3306
-}
+DB_NAME = 'database.db'
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 try:
-    print("=== INICIANDO CREACION DE BASE DE DATOS ===")
-    print(f"Conectando a: {DB_CONFIG['host']}")
+    print("=== INICIANDO CREACION DE BASE DE DATOS SQLite ===")
     
-    conexion = mysql.connector.connect(**DB_CONFIG)
+    conexion = sqlite3.connect(DB_NAME)
     cursor = conexion.cursor()
     
     print("✓ Conexion exitosa")
@@ -26,11 +18,11 @@ try:
     print("Creando tabla usuarios...")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nombre_usuario VARCHAR(50) UNIQUE NOT NULL,
-            password_hash VARCHAR(64) NOT NULL,
-            nombre_completo VARCHAR(100) NOT NULL,
-            es_admin BOOLEAN DEFAULT FALSE
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre_usuario TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            nombre_completo TEXT NOT NULL,
+            es_admin BOOLEAN DEFAULT 0
         )
     ''')
     print("✓ Tabla usuarios creada")
@@ -39,32 +31,38 @@ try:
     print("Creando tabla boosteos...")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS boosteos (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            usuario_id INT NOT NULL,
-            nombre_cliente VARCHAR(100) NOT NULL,
-            precio DECIMAL(10, 2) NOT NULL,
-            rango_inicio VARCHAR(50) NOT NULL,
-            rango_final VARCHAR(50) NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            nombre_cliente TEXT NOT NULL,
+            precio REAL NOT NULL,
+            rango_inicio TEXT NOT NULL,
+            rango_final TEXT NOT NULL,
             fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             notas TEXT,
+            completado BOOLEAN DEFAULT 0,
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         )
     ''')
     print("✓ Tabla boosteos creada")
     
-    # Crear usuario admin
-    print("Verificando usuario admin...")
-    cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = 'admin'")
-    if cursor.fetchone()[0] == 0:
-        print("Creando usuario admin...")
-        admin_hash = hash_password('admin123')
-        cursor.execute(
-            "INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (%s, %s, %s, %s)",
-            ('admin', admin_hash, 'Administrador', True)
-        )
-        print("✓ Usuario admin creado exitosamente")
-    else:
-        print("✓ Usuario admin ya existe")
+    # Crear usuarios por defecto
+    usuarios_lista = [
+        {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': 1},
+        {'u': 'nico', 'p': 'nico123', 'n': 'nico', 'a': 0},
+        {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': 0}
+    ]
+    
+    for user in usuarios_lista:
+        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = ?", (user['u'],))
+        if cursor.fetchone()[0] == 0:
+            h = hash_password(user['p'])
+            cursor.execute(
+                "INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (?, ?, ?, ?)",
+                (user['u'], h, user['n'], user['a'])
+            )
+            print(f"✓ Usuario {user['u']} creado exitosamente")
+        else:
+            print(f"✓ Usuario {user['u']} ya existe")
     
     conexion.commit()
     cursor.close()
