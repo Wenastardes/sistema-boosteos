@@ -60,14 +60,14 @@
                             {% endif %}
                         </td>
                         <td class="text-muted">
-                            <small>{{ boost.fecha_registro.strftime('%d/%m/%Y %H:%M') }}</small>
+                            <small>{{ boost.fecha_registro }}</small>
                         </td>
                         <td class="text-center">
                             <div class="btn-group">
                                 <a href="{{ url_for('editar_boosteo', boosteo_id=boost.id) }}" class="btn btn-sm btn-outline-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminar({{ boost.id }}, '{{ boost.nombre_cliente }}')">
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminar({{ boost.id }}, {{ boost.nombre_cliente|tojson }})">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
