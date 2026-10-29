@@ -242,12 +242,16 @@ def eliminar_boosteo(boosteo_id):
     try:
         cursor.execute("SELECT usuario_id FROM boosteos WHERE id = ?", (boosteo_id,))
         boosteo = cursor.fetchone()
-        if not boosteo or (boosteo['usuario_id'] != session['user_id'] and not session.get('es_admin')):
-            flash('No tienes permiso para eliminar este registro', 'error')
-        else:
+        
+        if not boosteo:
+            flash('El registro no existe', 'error')
+        elif session.get('es_admin') or boosteo['usuario_id'] == session['user_id']:
             cursor.execute("DELETE FROM boosteos WHERE id = ?", (boosteo_id,))
             conexion.commit()
             flash('Registro eliminado correctamente', 'success')
+        else:
+            flash('No tienes permiso para eliminar este registro', 'error')
+            
         return redirect(request.referrer or url_for('mis_boosteos'))
     finally:
         cursor.close()
@@ -320,7 +324,8 @@ def inicializar_base_datos():
         usuarios_lista = [
             {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': 1},
             {'u': 'nico', 'p': 'nico123', 'n': 'nico', 'a': 0},
-            {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': 0}
+            {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': 0},
+            {'u': 'pache', 'p': 'pache123', 'n': 'pache', 'a': 0}
         ]
         for user in usuarios_lista:
             cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = ?", (user['u'],))
