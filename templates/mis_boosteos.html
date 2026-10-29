@@ -67,9 +67,11 @@
                                 <a href="{{ url_for('editar_boosteo', boosteo_id=boost.id) }}" class="btn btn-sm btn-outline-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmarEliminar({{ boost.id }}, {{ boost.nombre_cliente|tojson }})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <form action="{{ url_for('eliminar_boosteo', boosteo_id=boost.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar el boosteo de {{ boost.nombre_cliente }}?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -88,26 +90,6 @@
         {% endif %}
     </div>
 </div>
-
-<div class="modal fade" id="modalEliminar" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-trash"></i> Eliminar Boosteo</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                ¿Estás seguro de que quieres eliminar el registro de <strong id="detalleBoosteo"></strong>?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" id="formEliminar" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Eliminar</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -116,23 +98,5 @@ var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggl
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl)
 })
-
-function confirmarEliminar(id, cliente) {
-    var detalle = document.getElementById('detalleBoosteo');
-    var form = document.getElementById('formEliminar');
-    var modalEl = document.getElementById('modalEliminar');
-    
-    if (detalle) detalle.textContent = cliente;
-    if (form) form.action = `/eliminar/${id}`;
-    
-    if (modalEl && typeof bootstrap !== 'undefined') {
-        var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        modal.show();
-    } else {
-        if (confirm(`¿Estás seguro de que quieres eliminar el registro de ${cliente}?`)) {
-            if (form) form.submit();
-        }
-    }
-}
 </script>
 {% endblock %}
