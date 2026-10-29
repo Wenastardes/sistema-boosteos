@@ -8,14 +8,9 @@ def hash_password(password):
 
 try:
     print("=== INICIANDO CREACION DE BASE DE DATOS SQLite ===")
-    
     conexion = sqlite3.connect(DB_NAME)
     cursor = conexion.cursor()
     
-    print("✓ Conexion exitosa")
-    
-    # Crear tabla usuarios
-    print("Creando tabla usuarios...")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,10 +20,7 @@ try:
             es_admin BOOLEAN DEFAULT 0
         )
     ''')
-    print("✓ Tabla usuarios creada")
     
-    # Crear tabla boosteos
-    print("Creando tabla boosteos...")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS boosteos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,13 +35,12 @@ try:
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         )
     ''')
-    print("✓ Tabla boosteos creada")
     
-    # Crear usuarios por defecto
     usuarios_lista = [
         {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': 1},
         {'u': 'nico', 'p': 'nico123', 'n': 'nico', 'a': 0},
-        {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': 0}
+        {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': 0},
+        {'u': 'pache', 'p': 'pache123', 'n': 'pache', 'a': 0}
     ]
     
     for user in usuarios_lista:
@@ -67,7 +58,6 @@ try:
     conexion.commit()
     cursor.close()
     conexion.close()
-    
     print("=== BASE DE DATOS LISTA ===")
     
 except Exception as e:

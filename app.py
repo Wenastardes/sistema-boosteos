@@ -19,7 +19,6 @@ def crear_conexion():
     """Crea una conexión a la base de datos SQLite"""
     try:
         conexion = sqlite3.connect(DB_NAME)
-        # Esto permite acceder a las columnas por su nombre como si fuera un diccionario
         conexion.row_factory = sqlite3.Row
         return conexion
     except Exception as e:

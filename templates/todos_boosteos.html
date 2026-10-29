@@ -60,7 +60,7 @@
                         </td>
                         <td>
                             {% if boost.notas %}
-                            <button class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="{{ boost.notas }}">
+                            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="{{ boost.notas }}">
                                 <i class="fas fa-info-circle"></i>
                             </button>
                             {% else %}
@@ -73,7 +73,7 @@
                                 <a href="{{ url_for('editar_boosteo', boosteo_id=boost.id) }}" class="btn btn-sm btn-outline-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminar({{ boost.id }}, {{ boost.nombre_cliente|tojson }})">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmarEliminar({{ boost.id }}, {{ boost.nombre_cliente|tojson }})">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -131,10 +131,21 @@ var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
 })
 
 function confirmarEliminar(id, cliente) {
-    document.getElementById('detalleBoosteo').textContent = cliente;
-    document.getElementById('formEliminar').action = `/eliminar/${id}`;
-    var modal = new bootstrap.Modal(document.getElementById('modalEliminar'));
-    modal.show();
+    var detalle = document.getElementById('detalleBoosteo');
+    var form = document.getElementById('formEliminar');
+    var modalEl = document.getElementById('modalEliminar');
+    
+    if (detalle) detalle.textContent = cliente;
+    if (form) form.action = `/eliminar/${id}`;
+    
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    } else {
+        if (confirm(`¿Estás seguro de que quieres eliminar el registro de ${cliente}?`)) {
+            if (form) form.submit();
+        }
+    }
 }
 </script>
 {% endblock %}
