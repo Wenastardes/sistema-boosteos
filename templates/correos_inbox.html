@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
+{% block title %}Correos Inbox - Sistema de Boosteos{% endblock %}
+
 {% block content %}
 <div class="container py-4 text-white">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-envelope"></i> Correos Inbox</h2>
+        <h2><i class="fas fa-envelope"></i> Correos Inbox</h2>
         <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm">Volver al Dashboard</a>
     </div>
 
@@ -43,14 +45,14 @@
     <div class="card bg-dark text-white border-secondary">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-dark table-hover mb-0">
+                <table class="table table-dark table-hover mb-0 align-middle">
                     <thead>
                         <tr>
                             <th>Correo</th>
                             <th>Contraseña</th>
                             <th>Proveedor</th>
                             <th>Notas</th>
-                            <th>Acciones</th>
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -60,9 +62,9 @@
                             <td><code>{{ correo.password_correo }}</code></td>
                             <td><span class="badge bg-secondary">{{ correo.proveedor }}</span></td>
                             <td>{{ correo.notas }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('eliminar_correo_inbox', id=correo.id) }}" onsubmit="return confirm('¿Eliminar correo?');">
-                                    <button class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>
+                            <td class="text-center">
+                                <form method="POST" action="{{ url_for('eliminar_correo_inbox', id=correo.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar correo?');">
+                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>

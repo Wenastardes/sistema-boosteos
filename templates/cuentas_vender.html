@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
+{% block title %}Cuentas para Vender - Sistema de Boosteos{% endblock %}
+
 {% block content %}
 <div class="container py-4 text-white">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-tag"></i> Cuentas para Vender</h2>
+        <h2><i class="fas fa-tags"></i> Cuentas para Vender</h2>
         <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm">Volver al Dashboard</a>
     </div>
 
@@ -39,7 +41,7 @@
     <div class="card bg-dark text-white border-secondary">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-dark table-hover mb-0">
+                <table class="table table-dark table-hover mb-0 align-middle">
                     <thead>
                         <tr>
                             <th>Título</th>
@@ -47,7 +49,7 @@
                             <th>Precio</th>
                             <th>Estado</th>
                             <th>Descripción</th>
-                            <th>Acciones</th>
+                            <th class="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -55,12 +57,12 @@
                         <tr>
                             <td class="fw-bold">{{ c.titulo }}</td>
                             <td><span class="badge bg-primary">{{ c.rango }}</span></td>
-                            <td class="text-success fw-bold">${{ "%.2f"|format(c.precio) }}</td>
+                            <td class="text-success fw-bold">${{ "%.2f"|format(c.precio|float) }}</td>
                             <td><span class="badge bg-warning text-dark">{{ c.estado }}</span></td>
                             <td>{{ c.descripcion }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('eliminar_cuenta_venta', id=c.id) }}" onsubmit="return confirm('¿Retirar cuenta de venta?');">
-                                    <button class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>
+                            <td class="text-center">
+                                <form method="POST" action="{{ url_for('eliminar_cuenta_venta', id=c.id) }}" style="display:inline;" onsubmit="return confirm('¿Retirar cuenta de venta?');">
+                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>

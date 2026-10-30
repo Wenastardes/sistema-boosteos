@@ -145,7 +145,7 @@ def dashboard():
     conexion = crear_conexion()
     if not conexion:
         flash('Error al conectar con la base de datos', 'error')
-        return render_template('dashboard.html', stats={})
+        return render_template('dashboard.html', mis_stats={}, mis_boosteos_count=0, total_ganado=0.0)
     cursor = conexion.cursor()
     try:
         cursor.execute('''
@@ -153,7 +153,12 @@ def dashboard():
             FROM boosteos WHERE usuario_id = ?
         ''', (session['user_id'],))
         mis_stats = cursor.fetchone()
+        
+        mis_boosteos_count = mis_stats['total'] if mis_stats else 0
+        total_ganado = float(mis_stats['total_ganado']) if mis_stats else 0.0
+
         stats_generales = None
+        usuarios_stats = []
         if session.get('es_admin'):
             cursor.execute('SELECT COUNT(*) as total_boosteos, COALESCE(SUM(precio), 0) as total_general FROM boosteos')
             stats_generales = cursor.fetchone()
@@ -164,18 +169,25 @@ def dashboard():
                 WHERE u.es_admin = 0 GROUP BY u.id, u.nombre_completo
             ''')
             usuarios_stats = cursor.fetchall()
-        else:
-            usuarios_stats = []
-        return render_template('dashboard.html', mis_stats=mis_stats, stats_generales=stats_generales, usuarios_stats=usuarios_stats)
+
+        return render_template(
+            'dashboard.html', 
+            mis_stats=mis_stats, 
+            mis_boosteos_count=mis_boosteos_count,
+            total_ganado=total_ganado,
+            stats_generales=stats_generales, 
+            usuarios_stats=usuarios_stats
+        )
     finally:
         cursor.close()
         conexion.close()
 
 # ============================================================================
-# RUTAS DE BOOSTEOS (REGISTRAR, EDITAR, ELIMINAR)
+# RUTAS DE BOOSTEOS
 # ============================================================================
 
-@app.route('/registrar', methods=['GET', 'POST'])
+@app.route('/registrar', methods=['GET', 'POST'], endpoint='registrar_boosteo')
+@app.route('/registrar-boosteo', methods=['GET', 'POST'], endpoint='registrar')
 @login_required
 def registrar_boosteo():
     if request.method == 'POST':
@@ -187,7 +199,8 @@ def registrar_boosteo():
         completado = 1 if request.form.get('completado') else 0
         
         conexion = crear_conexion()
-        if not conexion: return redirect(url_for('registrar_boosteo'))
+        if not conexion: 
+            return redirect(url_for('registrar_boosteo'))
         cursor = conexion.cursor()
         try:
             cursor.execute('''
@@ -400,7 +413,7 @@ def cuentas_vender():
         if request.method == 'POST':
             titulo = request.form.get('titulo')
             rango = request.form.get('rango')
-            precio = request.form.get('precio', 0.0)
+            precio = float(request.form.get('precio', 0.0) or 0.0)
             descripcion = request.form.get('descripcion', '')
 
             cursor.execute('''
@@ -438,7 +451,8 @@ def eliminar_cuenta_venta(id):
 
 def inicializar_base_datos():
     conexion = crear_conexion()
-    if not conexion: return
+    if not conexion: 
+        return
     cursor = conexion.cursor()
     try:
         cursor.execute('''
@@ -464,7 +478,6 @@ def inicializar_base_datos():
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             )
         ''')
-        # Tablas para los nuevos módulos
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS cuentas_ranked (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -516,7 +529,9 @@ def inicializar_base_datos():
         cursor.close()
         conexion.close()
 
+# Ejecución al cargar módulo (imprescindible para WSGI / PythonAnywhere)
+inicializar_base_datos()
+
 if __name__ == '__main__':
-    inicializar_base_datos()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

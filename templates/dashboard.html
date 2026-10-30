@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 
+{% block title %}Dashboard - Sistema de Boosteos{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     <!-- Mensajes Flash / Alertas -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm" role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -17,9 +19,9 @@
     <!-- Encabezado del Dashboard -->
     <div class="mb-4 text-white">
         <h1 class="fw-bold d-flex align-items-center gap-2">
-            <i class="bi bi-graph-up-arrow"></i> Dashboard
+            <i class="fas fa-chart-line"></i> Dashboard
         </h1>
-        <p class="text-white-50 mb-0">Bienvenido, {{ current_user.username if current_user.is_authenticated else session.get('usuario', 'Usuario') }}!</p>
+        <p class="text-white-50 mb-0">Bienvenido, {{ session.get('nombre_completo', session.get('username', 'Usuario')) }}!</p>
     </div>
 
     <!-- Tarjetas de Métricas Superiores -->
@@ -27,9 +29,9 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm text-white rounded-4 h-100" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
                 <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center">
-                    <i class="bi bi-list-task fs-1 mb-2"></i>
+                    <i class="fas fa-tasks fs-1 mb-2"></i>
                     <span class="fs-6 text-uppercase fw-semibold tracking-wide text-white-50">Mis Boosteos</span>
-                    <h2 class="display-4 fw-bold my-2">{{ mis_boosteos_count|default(1) }}</h2>
+                    <h2 class="display-4 fw-bold my-2">{{ mis_boosteos_count }}</h2>
                 </div>
             </div>
         </div>
@@ -37,9 +39,9 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm text-white rounded-4 h-100" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
                 <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center">
-                    <i class="bi bi-currency-dollar fs-1 mb-2"></i>
+                    <i class="fas fa-dollar-sign fs-1 mb-2"></i>
                     <span class="fs-6 text-uppercase fw-semibold tracking-wide text-white-50">Total Ganado</span>
-                    <h2 class="display-4 fw-bold my-2">${{ "%.2f"|format(total_ganado|default(200.64)) }}</h2>
+                    <h2 class="display-4 fw-bold my-2">${{ "%.2f"|format(total_ganado|float) }}</h2>
                 </div>
             </div>
         </div>
@@ -53,13 +55,13 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-plus-lg fs-4"></i>
+                            <i class="fas fa-plus fs-4"></i>
                         </div>
                         <h5 class="fw-bold text-dark">Registrar Boosteo</h5>
                         <p class="text-muted small">Agrega un nuevo boosteo al sistema</p>
                     </div>
                     <div class="mt-3">
-                        <a href="{{ url_for('registrar') }}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                        <a href="{{ url_for('registrar_boosteo') }}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
                             + Registrar
                         </a>
                     </div>
@@ -73,14 +75,14 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-list-ul fs-4"></i>
+                            <i class="fas fa-list fs-4"></i>
                         </div>
                         <h5 class="fw-bold text-dark">Mis Boosteos</h5>
                         <p class="text-muted small">Ve tu historial de boosteos</p>
                     </div>
                     <div class="mt-3">
                         <a href="{{ url_for('mis_boosteos') }}" class="btn btn-success px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
-                            <i class="bi bi-check-circle me-1"></i> Ver Míos
+                            <i class="fas fa-check-circle me-1"></i> Ver Míos
                         </a>
                     </div>
                 </div>
@@ -93,14 +95,14 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <div class="rounded-circle bg-info text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-collection fs-4"></i>
+                            <i class="fas fa-folder-open fs-4"></i>
                         </div>
                         <h5 class="fw-bold text-dark">Todos los Boosteos</h5>
                         <p class="text-muted small">Ve el historial completo</p>
                     </div>
                     <div class="mt-3">
                         <a href="{{ url_for('todos_boosteos') }}" class="btn btn-info text-white px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
-                            <i class="bi bi-folder2-open me-1"></i> Ver Todos
+                            <i class="fas fa-list-alt me-1"></i> Ver Todos
                         </a>
                     </div>
                 </div>
@@ -108,7 +110,7 @@
         </div>
     </div>
 
-    <!-- Fila 2: Nuevas Secciones Solicitadas -->
+    <!-- Fila 2: Módulos Nuevos -->
     <div class="row g-4">
         <!-- Cuentas Ranked Ready -->
         <div class="col-md-4">
@@ -116,14 +118,14 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <div class="rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-shield-check fs-4"></i>
+                            <i class="fas fa-shield-alt fs-4"></i>
                         </div>
                         <h5 class="fw-bold text-dark">Cuentas Ranked Ready</h5>
                         <p class="text-muted small">Inventario de cuentas listas y habilitadas para competitivo</p>
                     </div>
                     <div class="mt-3">
-                        <a href="{{ url_for('cuentas_ranked_ready') if 'cuentas_ranked_ready' in url_for.__globals__ else '#' }}" class="btn btn-warning text-dark px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
-                            <i class="bi bi-controller me-1"></i> Ver Cuentas
+                        <a href="{{ url_for('cuentas_ranked_ready') }}" class="btn btn-warning text-dark px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="fas fa-gamepad me-1"></i> Ver Cuentas
                         </a>
                     </div>
                 </div>
@@ -136,14 +138,14 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <div class="rounded-circle bg-danger text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-envelope fs-4"></i>
+                            <i class="fas fa-envelope fs-4"></i>
                         </div>
                         <h5 class="fw-bold text-dark">Correos Inbox</h5>
                         <p class="text-muted small">Bandeja de entrada y correos vinculados para verificación</p>
                     </div>
                     <div class="mt-3">
-                        <a href="{{ url_for('correos_inbox') if 'correos_inbox' in url_for.__globals__ else '#' }}" class="btn btn-danger px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
-                            <i class="bi bi-inbox me-1"></i> Abrir Inbox
+                        <a href="{{ url_for('correos_inbox') }}" class="btn btn-danger px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="fas fa-inbox me-1"></i> Abrir Inbox
                         </a>
                     </div>
                 </div>
@@ -156,19 +158,19 @@
                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                     <div>
                         <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
-                            <i class="bi bi-tag fs-4"></i>
+                            <i class="fas fa-tags fs-4"></i>
                         </div>
                         <h5 class="fw-bold text-dark">Cuentas para Vender</h5>
                         <p class="text-muted small">Catálogo de cuentas en stock con precios y detalles</p>
                     </div>
                     <div class="mt-3">
-                        <a href="{{ url_for('cuentas_vender') if 'cuentas_vender' in url_for.__globals__ else '#' }}" class="btn btn-secondary px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
-                            <i class="bi bi-cart me-1"></i> Ver Catálogo
+                        <a href="{{ url_for('cuentas_vender') }}" class="btn btn-secondary px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="fas fa-shopping-cart me-1"></i> Ver Catálogo
                         </a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </div>  
 </div>
 {% endblock %}
