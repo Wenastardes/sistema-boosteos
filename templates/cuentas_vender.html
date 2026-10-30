@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4 text-white">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-tag"></i> Cuentas para Vender</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm">Volver al Dashboard</a>
+    </div>
+
+    <!-- Formulario para agregar -->
+    <div class="card bg-dark text-white border-secondary mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Publicar Cuenta en Venta</h5>
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Título / Nombre</label>
+                        <input type="text" name="titulo" class="form-control" placeholder="Ej: Cuenta Smurf Diamante 3" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Rango</label>
+                        <input type="text" name="rango" class="form-control" placeholder="Ej: Grand Champion 1" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Precio ($)</label>
+                        <input type="number" step="0.01" name="precio" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Detalles / Skins</label>
+                        <input type="text" name="descripcion" class="form-control" placeholder="Items, créditos...">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-secondary mt-3 fw-bold">+ Publicar Cuenta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Listado -->
+    <div class="card bg-dark text-white border-secondary">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Rango</th>
+                            <th>Precio</th>
+                            <th>Estado</th>
+                            <th>Descripción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in cuentas %}
+                        <tr>
+                            <td class="fw-bold">{{ c.titulo }}</td>
+                            <td><span class="badge bg-primary">{{ c.rango }}</span></td>
+                            <td class="text-success fw-bold">${{ "%.2f"|format(c.precio) }}</td>
+                            <td><span class="badge bg-warning text-dark">{{ c.estado }}</span></td>
+                            <td>{{ c.descripcion }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('eliminar_cuenta_venta', id=c.id) }}" onsubmit="return confirm('¿Retirar cuenta de venta?');">
+                                    <button class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">No hay cuentas en venta.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

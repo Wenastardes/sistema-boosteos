@@ -289,6 +289,150 @@ def todos_boosteos():
         conexion.close()
 
 # ============================================================================
+# SECCIÓN 1: CUENTAS RANKED READY
+# ============================================================================
+
+@app.route('/cuentas-ranked-ready', methods=['GET', 'POST'])
+@login_required
+def cuentas_ranked_ready():
+    conexion = crear_conexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos', 'error')
+        return redirect(url_for('dashboard'))
+    cursor = conexion.cursor()
+    try:
+        if request.method == 'POST':
+            usuario_cuenta = request.form.get('usuario_cuenta')
+            password_cuenta = request.form.get('password_cuenta')
+            nivel = request.form.get('nivel', '')
+            notas = request.form.get('notas', '')
+
+            cursor.execute('''
+                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, estado, notas)
+                VALUES (?, ?, ?, 'Disponible', ?)
+            ''', (usuario_cuenta, password_cuenta, nivel, notas))
+            conexion.commit()
+            flash('Cuenta Ranked Ready registrada correctamente', 'success')
+            return redirect(url_for('cuentas_ranked_ready'))
+
+        cursor.execute('SELECT * FROM cuentas_ranked ORDER BY fecha_creacion DESC')
+        cuentas = cursor.fetchall()
+        return render_template('cuentas_ranked_ready.html', cuentas=cuentas)
+    finally:
+        cursor.close()
+        conexion.close()
+
+@app.route('/cuentas-ranked-ready/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_cuenta_ranked(id):
+    conexion = crear_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("DELETE FROM cuentas_ranked WHERE id = ?", (id,))
+        conexion.commit()
+        flash('Cuenta eliminada del inventario', 'success')
+        return redirect(url_for('cuentas_ranked_ready'))
+    finally:
+        cursor.close()
+        conexion.close()
+
+# ============================================================================
+# SECCIÓN 2: CORREOS INBOX
+# ============================================================================
+
+@app.route('/correos-inbox', methods=['GET', 'POST'])
+@login_required
+def correos_inbox():
+    conexion = crear_conexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos', 'error')
+        return redirect(url_for('dashboard'))
+    cursor = conexion.cursor()
+    try:
+        if request.method == 'POST':
+            correo = request.form.get('correo')
+            password_correo = request.form.get('password_correo')
+            proveedor = request.form.get('proveedor', 'Outlook')
+            notas = request.form.get('notas', '')
+
+            cursor.execute('''
+                INSERT INTO correos_inbox (correo, password_correo, proveedor, notas)
+                VALUES (?, ?, ?, ?)
+            ''', (correo, password_correo, proveedor, notas))
+            conexion.commit()
+            flash('Correo registrado con éxito', 'success')
+            return redirect(url_for('correos_inbox'))
+
+        cursor.execute('SELECT * FROM correos_inbox ORDER BY fecha_registro DESC')
+        correos = cursor.fetchall()
+        return render_template('correos_inbox.html', correos=correos)
+    finally:
+        cursor.close()
+        conexion.close()
+
+@app.route('/correos-inbox/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_correo_inbox(id):
+    conexion = crear_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("DELETE FROM correos_inbox WHERE id = ?", (id,))
+        conexion.commit()
+        flash('Correo eliminado del listado', 'success')
+        return redirect(url_for('correos_inbox'))
+    finally:
+        cursor.close()
+        conexion.close()
+
+# ============================================================================
+# SECCIÓN 3: CUENTAS PARA VENDER
+# ============================================================================
+
+@app.route('/cuentas-vender', methods=['GET', 'POST'])
+@login_required
+def cuentas_vender():
+    conexion = crear_conexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos', 'error')
+        return redirect(url_for('dashboard'))
+    cursor = conexion.cursor()
+    try:
+        if request.method == 'POST':
+            titulo = request.form.get('titulo')
+            rango = request.form.get('rango')
+            precio = request.form.get('precio', 0.0)
+            descripcion = request.form.get('descripcion', '')
+
+            cursor.execute('''
+                INSERT INTO cuentas_venta (titulo, rango, precio, estado, descripcion)
+                VALUES (?, ?, ?, 'En Venta', ?)
+            ''', (titulo, rango, precio, descripcion))
+            conexion.commit()
+            flash('Cuenta publicada para la venta exitosamente', 'success')
+            return redirect(url_for('cuentas_vender'))
+
+        cursor.execute('SELECT * FROM cuentas_venta ORDER BY fecha_publicacion DESC')
+        cuentas = cursor.fetchall()
+        return render_template('cuentas_vender.html', cuentas=cuentas)
+    finally:
+        cursor.close()
+        conexion.close()
+
+@app.route('/cuentas-vender/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_cuenta_venta(id):
+    conexion = crear_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("DELETE FROM cuentas_venta WHERE id = ?", (id,))
+        conexion.commit()
+        flash('Cuenta retirada del catálogo de venta', 'success')
+        return redirect(url_for('cuentas_vender'))
+    finally:
+        cursor.close()
+        conexion.close()
+
+# ============================================================================
 # INICIALIZACIÓN AUTOMÁTICA AL ARRANCAR
 # ============================================================================
 
@@ -320,6 +464,40 @@ def inicializar_base_datos():
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             )
         ''')
+        # Tablas para los nuevos módulos
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS cuentas_ranked (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_cuenta TEXT NOT NULL,
+                password_cuenta TEXT NOT NULL,
+                nivel TEXT,
+                estado TEXT DEFAULT 'Disponible',
+                notas TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS correos_inbox (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                correo TEXT NOT NULL,
+                password_correo TEXT NOT NULL,
+                proveedor TEXT,
+                notas TEXT,
+                fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS cuentas_venta (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT NOT NULL,
+                rango TEXT NOT NULL,
+                precio REAL NOT NULL,
+                estado TEXT DEFAULT 'En Venta',
+                descripcion TEXT,
+                fecha_publicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         usuarios_lista = [
             {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': 1},
             {'u': 'nico', 'p': 'nico123', 'n': 'nico', 'a': 0},

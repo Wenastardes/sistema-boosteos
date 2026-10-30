@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4 text-white">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-envelope"></i> Correos Inbox</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm">Volver al Dashboard</a>
+    </div>
+
+    <!-- Formulario para agregar -->
+    <div class="card bg-dark text-white border-secondary mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Registrar Correo</h5>
+            <form method="POST">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input type="email" name="correo" class="form-control" required placeholder="correo@ejemplo.com">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="text" name="password_correo" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Proveedor</label>
+                        <select name="proveedor" class="form-select">
+                            <option value="Outlook">Outlook / Hotmail</option>
+                            <option value="Gmail">Gmail</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Notas</label>
+                        <input type="text" name="notas" class="form-control" placeholder="Cuenta asociada, etc.">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-danger mt-3 fw-bold">+ Guardar Correo</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Listado -->
+    <div class="card bg-dark text-white border-secondary">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Correo</th>
+                            <th>Contraseña</th>
+                            <th>Proveedor</th>
+                            <th>Notas</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for correo in correos %}
+                        <tr>
+                            <td>{{ correo.correo }}</td>
+                            <td><code>{{ correo.password_correo }}</code></td>
+                            <td><span class="badge bg-secondary">{{ correo.proveedor }}</span></td>
+                            <td>{{ correo.notas }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('eliminar_correo_inbox', id=correo.id) }}" onsubmit="return confirm('¿Eliminar correo?');">
+                                    <button class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">No hay correos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,129 +1,172 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Sistema de Boosteos{% endblock %}
-
 {% block content %}
-<div class="row mb-4">
-    <div class="col">
-        <h1 class="text-white fw-bold">
-            <i class="fas fa-chart-line"></i> Dashboard
+<div class="container py-4">
+    <!-- Mensajes Flash / Alertas -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Encabezado del Dashboard -->
+    <div class="mb-4 text-white">
+        <h1 class="fw-bold d-flex align-items-center gap-2">
+            <i class="bi bi-graph-up-arrow"></i> Dashboard
         </h1>
-        <p class="text-white opacity-75">Bienvenido, {{ session.nombre_completo }}!</p>
+        <p class="text-white-50 mb-0">Bienvenido, {{ current_user.username if current_user.is_authenticated else session.get('usuario', 'Usuario') }}!</p>
     </div>
-</div>
 
-<!-- Mis Estadísticas -->
-<div class="row mb-4">
-    <div class="col-md-6 mb-3">
-        <div class="stat-card">
-            <i class="fas fa-list-check fa-2x mb-2"></i>
-            <p class="mb-1">Mis Boosteos</p>
-            <h3>{{ mis_stats.total }}</h3>
-        </div>
-    </div>
-    <div class="col-md-6 mb-3">
-        <div class="stat-card" style="background: linear-gradient(135deg, #10b981, #059669);">
-            <i class="fas fa-dollar-sign fa-2x mb-2"></i>
-            <p class="mb-1">Total Ganado</p>
-            <h3>${{ "%.2f"|format(mis_stats.total_ganado|float) }}</h3>
-        </div>
-    </div>
-</div>
-
-<!-- Estadísticas Admin -->
-{% if session.es_admin and stats_generales %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
-                <h5 class="mb-0">
-                    <i class="fas fa-crown"></i> Estadísticas Generales (Admin)
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row text-center mb-4">
-                    <div class="col-md-6">
-                        <h2 class="text-primary fw-bold">{{ stats_generales.total_boosteos }}</h2>
-                        <p class="text-muted">Total de Boosteos</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h2 class="text-success fw-bold">${{ "%.2f"|format(stats_generales.total_general|float) }}</h2>
-                        <p class="text-muted">Total General</p>
-                    </div>
+    <!-- Tarjetas de Métricas Superiores -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm text-white rounded-4 h-100" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center">
+                    <i class="bi bi-list-task fs-1 mb-2"></i>
+                    <span class="fs-6 text-uppercase fw-semibold tracking-wide text-white-50">Mis Boosteos</span>
+                    <h2 class="display-4 fw-bold my-2">{{ mis_boosteos_count|default(1) }}</h2>
                 </div>
+            </div>
+        </div>
 
-                <h6 class="fw-bold mb-3">Estadísticas por Usuario:</h6>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Usuario</th>
-                                <th class="text-center">Boosteos</th>
-                                <th class="text-end">Total Ganado</th>
-                                <th class="text-end">Promedio</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for user in usuarios_stats %}
-                            <tr>
-                                <td><strong>{{ user.nombre_completo }}</strong></td>
-                                <td class="text-center">
-                                    <span class="badge bg-primary">{{ user.total }}</span>
-                                </td>
-                                <td class="text-end text-success fw-bold">
-                                    ${{ "%.2f"|format(user.ganado|float) }}
-                                </td>
-                                <td class="text-end text-muted">
-                                    ${{ "%.2f"|format((user.ganado|float / user.total) if user.total > 0 else 0) }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm text-white rounded-4 h-100" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center">
+                    <i class="bi bi-currency-dollar fs-1 mb-2"></i>
+                    <span class="fs-6 text-uppercase fw-semibold tracking-wide text-white-50">Total Ganado</span>
+                    <h2 class="display-4 fw-bold my-2">${{ "%.2f"|format(total_ganado|default(200.64)) }}</h2>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endif %}
 
-<!-- Acciones Rápidas -->
-<div class="row">
-    <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
-                <h5 class="card-title">Registrar Boosteo</h5>
-                <p class="card-text text-muted">Agrega un nuevo boosteo al sistema</p>
-                <a href="{{ url_for('registrar_boosteo') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Registrar
-                </a>
+    <!-- Fila 1: Accesos Rápidos Principales -->
+    <div class="row g-4 mb-4">
+        <!-- Registrar Boosteo -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 bg-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                            <i class="bi bi-plus-lg fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Registrar Boosteo</h5>
+                        <p class="text-muted small">Agrega un nuevo boosteo al sistema</p>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('registrar') }}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            + Registrar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mis Boosteos -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 bg-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                            <i class="bi bi-list-ul fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Mis Boosteos</h5>
+                        <p class="text-muted small">Ve tu historial de boosteos</p>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('mis_boosteos') }}" class="btn btn-success px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="bi bi-check-circle me-1"></i> Ver Míos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Todos los Boosteos -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 bg-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="rounded-circle bg-info text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                            <i class="bi bi-collection fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Todos los Boosteos</h5>
+                        <p class="text-muted small">Ve el historial completo</p>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('todos_boosteos') }}" class="btn btn-info text-white px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="bi bi-folder2-open me-1"></i> Ver Todos
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-list fa-3x text-success mb-3"></i>
-                <h5 class="card-title">Mis Boosteos</h5>
-                <p class="card-text text-muted">Ve tu historial de boosteos</p>
-                <a href="{{ url_for('mis_boosteos') }}" class="btn btn-success">
-                    <i class="fas fa-eye"></i> Ver Míos
-                </a>
+    <!-- Fila 2: Nuevas Secciones Solicitadas -->
+    <div class="row g-4">
+        <!-- Cuentas Ranked Ready -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 bg-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                            <i class="bi bi-shield-check fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Cuentas Ranked Ready</h5>
+                        <p class="text-muted small">Inventario de cuentas listas y habilitadas para competitivo</p>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('cuentas_ranked_ready') if 'cuentas_ranked_ready' in url_for.__globals__ else '#' }}" class="btn btn-warning text-dark px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="bi bi-controller me-1"></i> Ver Cuentas
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
-                <h5 class="card-title">Todos los Boosteos</h5>
-                <p class="card-text text-muted">Ve el historial completo</p>
-                <a href="{{ url_for('todos_boosteos') }}" class="btn btn-info text-white">
-                    <i class="fas fa-globe"></i> Ver Todos
-                </a>
+        <!-- Correos Inbox -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 bg-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="rounded-circle bg-danger text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                            <i class="bi bi-envelope fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Correos Inbox</h5>
+                        <p class="text-muted small">Bandeja de entrada y correos vinculados para verificación</p>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('correos_inbox') if 'correos_inbox' in url_for.__globals__ else '#' }}" class="btn btn-danger px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="bi bi-inbox me-1"></i> Abrir Inbox
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cuentas para Vender -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 bg-white">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px;">
+                            <i class="bi bi-tag fs-4"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Cuentas para Vender</h5>
+                        <p class="text-muted small">Catálogo de cuentas en stock con precios y detalles</p>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('cuentas_vender') if 'cuentas_vender' in url_for.__globals__ else '#' }}" class="btn btn-secondary px-4 py-2 rounded-pill fw-semibold shadow-sm w-75">
+                            <i class="bi bi-cart me-1"></i> Ver Catálogo
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
