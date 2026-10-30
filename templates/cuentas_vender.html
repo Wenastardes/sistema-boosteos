@@ -15,17 +15,25 @@
             <h5 class="card-title mb-3">Publicar Cuenta en Venta</h5>
             <form method="POST">
                 <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Título / Nombre</label>
-                        <input type="text" name="titulo" class="form-control" placeholder="Ej: Cuenta Smurf Diamante 3" required>
-                    </div>
                     <div class="col-md-3">
+                        <label class="form-label">Título / Nombre</label>
+                        <input type="text" name="titulo" class="form-control" placeholder="Ej: Smurf D3" required>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label">Rango</label>
-                        <input type="text" name="rango" class="form-control" placeholder="Ej: Grand Champion 1" required>
+                        <input type="text" name="rango" class="form-control" placeholder="Ej: GC1" required>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Precio ($)</label>
                         <input type="number" step="0.01" name="precio" class="form-control" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Estado</label>
+                        <select name="estado" class="form-select">
+                            <option value="En Venta" selected>En Venta</option>
+                            <option value="Vendida">Vendida</option>
+                            <option value="No Vender">No Vender</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Detalles / Skins</label>
@@ -47,9 +55,9 @@
                             <th>Título</th>
                             <th>Rango</th>
                             <th>Precio</th>
-                            <th>Estado</th>
+                            <th style="width: 170px;">Estado</th>
                             <th>Descripción</th>
-                            <th class="text-center">Acciones</th>
+                            <th class="text-center" style="width: 100px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -58,8 +66,16 @@
                             <td class="fw-bold">{{ c.titulo }}</td>
                             <td><span class="badge bg-primary">{{ c.rango }}</span></td>
                             <td class="text-success fw-bold">${{ "%.2f"|format(c.precio|float) }}</td>
-                            <td><span class="badge bg-warning text-dark">{{ c.estado }}</span></td>
-                            <td>{{ c.descripcion }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('cambiar_estado_cuenta_venta', id=c.id) }}">
+                                    <select name="estado" class="form-select form-select-sm fw-semibold {% if c.estado == 'En Venta' %}bg-warning text-dark border-warning{% elif c.estado == 'Vendida' %}bg-success text-white border-success{% else %}bg-secondary text-white border-secondary{% endif %}" onchange="this.form.submit()">
+                                        <option value="En Venta" {% if c.estado == 'En Venta' %}selected{% endif %}>En Venta</option>
+                                        <option value="Vendida" {% if c.estado == 'Vendida' %}selected{% endif %}>Vendida</option>
+                                        <option value="No Vender" {% if c.estado == 'No Vender' %}selected{% endif %}>No Vender</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>{{ c.descripcion or '-' }}</td>
                             <td class="text-center">
                                 <form method="POST" action="{{ url_for('eliminar_cuenta_venta', id=c.id) }}" style="display:inline;" onsubmit="return confirm('¿Retirar cuenta de venta?');">
                                     <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>

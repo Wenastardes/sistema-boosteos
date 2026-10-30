@@ -15,21 +15,26 @@
             <h5 class="card-title mb-3">Agregar Cuenta Ranked Ready</h5>
             <form method="POST">
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Usuario / Login</label>
-                        <input type="text" name="usuario_cuenta" class="form-control" required>
+                    <div class="col-md-4">
+                        <label class="form-label">Correo</label>
+                        <input type="text" name="correo_cuenta" class="form-control" placeholder="correo@ejemplo.com" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Contraseña</label>
                         <input type="text" name="password_cuenta" class="form-control" required>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Nivel / Rango</label>
-                        <input type="text" name="nivel" class="form-control" placeholder="Ej: Lvl 30">
+                        <label class="form-label">Estado Inicial</label>
+                        <select name="estado" class="form-select">
+                            <option value="No Usada" selected>No Usada</option>
+                            <option value="Usada">Usada</option>
+                            <option value="Vendida">Vendida</option>
+                            <option value="Publicada">Publicada</option>
+                        </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Notas / Correo vinculado</label>
-                        <input type="text" name="notas" class="form-control" placeholder="Detalles extra">
+                    <div class="col-md-3">
+                        <label class="form-label">Notas / Observaciones</label>
+                        <input type="text" name="notas" class="form-control" placeholder="Detalles de la cuenta">
                     </div>
                 </div>
                 <button type="submit" class="btn btn-warning mt-3 text-dark fw-bold">+ Guardar Cuenta</button>
@@ -44,12 +49,11 @@
                 <table class="table table-dark table-hover mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th>Usuario</th>
+                            <th>Correo</th>
                             <th>Contraseña</th>
-                            <th>Nivel</th>
-                            <th>Estado</th>
+                            <th style="width: 180px;">Estado</th>
                             <th>Notas</th>
-                            <th class="text-center">Acciones</th>
+                            <th class="text-center" style="width: 100px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -57,18 +61,26 @@
                         <tr>
                             <td>{{ c.usuario_cuenta }}</td>
                             <td><code>{{ c.password_cuenta }}</code></td>
-                            <td>{{ c.nivel }}</td>
-                            <td><span class="badge bg-success">{{ c.estado }}</span></td>
-                            <td>{{ c.notas }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('cambiar_estado_cuenta_ranked', id=c.id) }}">
+                                    <select name="estado" class="form-select form-select-sm fw-semibold {% if c.estado == 'No Usada' %}bg-primary text-white border-primary{% elif c.estado == 'Usada' %}bg-secondary text-white border-secondary{% elif c.estado == 'Vendida' %}bg-success text-white border-success{% else %}bg-warning text-dark border-warning{% endif %}" onchange="this.form.submit()">
+                                        <option value="No Usada" {% if c.estado == 'No Usada' %}selected{% endif %}>No Usada</option>
+                                        <option value="Usada" {% if c.estado == 'Usada' %}selected{% endif %}>Usada</option>
+                                        <option value="Vendida" {% if c.estado == 'Vendida' %}selected{% endif %}>Vendida</option>
+                                        <option value="Publicada" {% if c.estado == 'Publicada' %}selected{% endif %}>Publicada</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>{{ c.notas or '-' }}</td>
                             <td class="text-center">
-                                <form method="POST" action="{{ url_for('eliminar_cuenta_ranked', id=c.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar cuenta?');">
+                                <form method="POST" action="{{ url_for('eliminar_cuenta_ranked', id=c.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar esta cuenta ranked?');">
                                     <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-3">No hay cuentas registradas.</td>
+                            <td colspan="5" class="text-center text-muted py-3">No hay cuentas registradas.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

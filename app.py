@@ -315,22 +315,37 @@ def cuentas_ranked_ready():
     cursor = conexion.cursor()
     try:
         if request.method == 'POST':
-            usuario_cuenta = request.form.get('usuario_cuenta')
+            correo_cuenta = request.form.get('correo_cuenta')
             password_cuenta = request.form.get('password_cuenta')
-            nivel = request.form.get('nivel', '')
+            estado = request.form.get('estado', 'No Usada')
             notas = request.form.get('notas', '')
 
             cursor.execute('''
                 INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, estado, notas)
-                VALUES (?, ?, ?, 'Disponible', ?)
-            ''', (usuario_cuenta, password_cuenta, nivel, notas))
+                VALUES (?, ?, '', ?, ?)
+            ''', (correo_cuenta, password_cuenta, estado, notas))
             conexion.commit()
-            flash('Cuenta Ranked Ready registrada correctamente', 'success')
+            flash('Cuenta Ranked registrada correctamente', 'success')
             return redirect(url_for('cuentas_ranked_ready'))
 
         cursor.execute('SELECT * FROM cuentas_ranked ORDER BY fecha_creacion DESC')
         cuentas = cursor.fetchall()
         return render_template('cuentas_ranked_ready.html', cuentas=cuentas)
+    finally:
+        cursor.close()
+        conexion.close()
+
+@app.route('/cuentas-ranked-ready/estado/<int:id>', methods=['POST'])
+@login_required
+def cambiar_estado_cuenta_ranked(id):
+    nuevo_estado = request.form.get('estado')
+    conexion = crear_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("UPDATE cuentas_ranked SET estado = ? WHERE id = ?", (nuevo_estado, id))
+        conexion.commit()
+        flash(f'Estado actualizado a: {nuevo_estado}', 'success')
+        return redirect(url_for('cuentas_ranked_ready'))
     finally:
         cursor.close()
         conexion.close()
@@ -365,7 +380,7 @@ def correos_inbox():
         if request.method == 'POST':
             correo = request.form.get('correo')
             password_correo = request.form.get('password_correo')
-            proveedor = request.form.get('proveedor', 'Outlook')
+            proveedor = request.form.get('proveedor', 'inbox.eu')
             notas = request.form.get('notas', '')
 
             cursor.execute('''
@@ -414,19 +429,35 @@ def cuentas_vender():
             titulo = request.form.get('titulo')
             rango = request.form.get('rango')
             precio = float(request.form.get('precio', 0.0) or 0.0)
+            estado = request.form.get('estado', 'En Venta')
             descripcion = request.form.get('descripcion', '')
 
             cursor.execute('''
                 INSERT INTO cuentas_venta (titulo, rango, precio, estado, descripcion)
-                VALUES (?, ?, ?, 'En Venta', ?)
-            ''', (titulo, rango, precio, descripcion))
+                VALUES (?, ?, ?, ?, ?)
+            ''', (titulo, rango, precio, estado, descripcion))
             conexion.commit()
-            flash('Cuenta publicada para la venta exitosamente', 'success')
+            flash('Cuenta publicada exitosamente', 'success')
             return redirect(url_for('cuentas_vender'))
 
         cursor.execute('SELECT * FROM cuentas_venta ORDER BY fecha_publicacion DESC')
         cuentas = cursor.fetchall()
         return render_template('cuentas_vender.html', cuentas=cuentas)
+    finally:
+        cursor.close()
+        conexion.close()
+
+@app.route('/cuentas-vender/estado/<int:id>', methods=['POST'])
+@login_required
+def cambiar_estado_cuenta_venta(id):
+    nuevo_estado = request.form.get('estado')
+    conexion = crear_conexion()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("UPDATE cuentas_venta SET estado = ? WHERE id = ?", (nuevo_estado, id))
+        conexion.commit()
+        flash(f'Estado actualizado a: {nuevo_estado}', 'success')
+        return redirect(url_for('cuentas_vender'))
     finally:
         cursor.close()
         conexion.close()

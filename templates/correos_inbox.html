@@ -17,7 +17,7 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Correo Electrónico</label>
-                        <input type="email" name="correo" class="form-control" required placeholder="correo@ejemplo.com">
+                        <input type="email" name="correo" class="form-control" required placeholder="correo@inbox.eu">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Contraseña</label>
@@ -26,9 +26,8 @@
                     <div class="col-md-2">
                         <label class="form-label">Proveedor</label>
                         <select name="proveedor" class="form-select">
-                            <option value="Outlook">Outlook / Hotmail</option>
-                            <option value="Gmail">Gmail</option>
-                            <option value="Otro">Otro</option>
+                            <option value="inbox.eu" selected>inbox.eu</option>
+                            <option value="inbox.la">inbox.la</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -52,7 +51,7 @@
                             <th>Contraseña</th>
                             <th>Proveedor</th>
                             <th>Notas</th>
-                            <th class="text-center">Acciones</th>
+                            <th class="text-center" style="width: 100px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -61,7 +60,7 @@
                             <td>{{ correo.correo }}</td>
                             <td><code>{{ correo.password_correo }}</code></td>
                             <td><span class="badge bg-secondary">{{ correo.proveedor }}</span></td>
-                            <td>{{ correo.notas }}</td>
+                            <td>{{ correo.notas or '-' }}</td>
                             <td class="text-center">
                                 <form method="POST" action="{{ url_for('eliminar_correo_inbox', id=correo.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar correo?');">
                                     <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
