@@ -363,7 +363,37 @@ def eliminar_cuenta_ranked(id):
     finally:
         cursor.close()
         conexion.close()
+# ============================================================================
+# API PARA EL BOT (Correos Inbox)
+# ============================================================================
 
+@app.route('/guardar-correo-api', methods=['POST'])
+def guardar_correo_api():
+    conexion = crear_conexion()
+    if not conexion:
+        return jsonify({"status": "error", "mensaje": "Error de conexión a la BD"}), 500
+    
+    cursor = conexion.cursor()
+    try:
+        correo = request.form.get('correo')
+        password_correo = request.form.get('password_correo')
+        proveedor = request.form.get('proveedor', 'inbox.eu')
+        notas = request.form.get('notas', '')
+
+        if not correo or not password_correo:
+            return jsonify({"status": "error", "mensaje": "Faltan datos obligatorios"}), 400
+
+        cursor.execute('''
+            INSERT INTO correos_inbox (correo, password_correo, proveedor, notas)
+            VALUES (?, ?, ?, ?)
+        ''', (correo, password_correo, proveedor, notas))
+        conexion.commit()
+        return jsonify({"status": "success", "mensaje": "Correo guardado con éxito"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "mensaje": str(e)}), 500
+    finally:
+        cursor.close()
+        conexion.close()
 # ============================================================================
 # SECCIÓN 2: CORREOS INBOX
 # ============================================================================
