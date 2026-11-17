@@ -487,37 +487,6 @@ def eliminar_correo_inbox(id):
         cursor.close()
         conexion.close()
 
-@app.route('/correos-inbox/a-ranked/<int:id>', methods=['POST'])
-@login_required
-def convertir_correo_ranked(id):
-    precio = float(request.form.get('precio_ranked', 0.0) or 0.0)
-    conexion = crear_conexion()
-    if not conexion:
-        flash('Error al conectar con la base de datos', 'error')
-        return redirect(url_for('correos_inbox'))
-    
-    cursor = conexion.cursor()
-    try:
-        cursor.execute("SELECT * FROM correos_inbox WHERE id = ?", (id,))
-        correo_obj = cursor.fetchone()
-        
-        if correo_obj:
-            cursor.execute('''
-                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, precio, estado, notas)
-                VALUES (?, ?, '', ?, 'No Usada', ?)
-            ''', (correo_obj['correo'], correo_obj['password_correo'], precio, correo_obj['notas']))
-            conexion.commit()
-            flash('¡Cuenta enviada a Ranked Ready con éxito!', 'success')
-        else:
-            flash('El correo no existe', 'error')
-    except Exception as e:
-        flash(f'Error al convertir cuenta: {e}', 'error')
-    finally:
-        cursor.close()
-        conexion.close()
-    
-    return redirect(url_for('correos_inbox'))
-
 # ============================================================================
 # SECCIÓN 3: CUENTAS PARA VENDER
 # ============================================================================
