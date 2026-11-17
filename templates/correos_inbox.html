@@ -51,7 +51,7 @@
                             <th>Contraseña</th>
                             <th>Proveedor</th>
                             <th>Notas</th>
-                            <th class="text-center" style="width: 100px;">Acciones</th>
+                            <th class="text-center" style="width: 250px;">Acciones / Ranked Ready</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -62,8 +62,20 @@
                             <td><span class="badge bg-secondary">{{ correo.proveedor }}</span></td>
                             <td>{{ correo.notas or '-' }}</td>
                             <td class="text-center">
-                                <form method="POST" action="{{ url_for('eliminar_correo_inbox', id=correo.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar correo?');">
-                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                <!-- Formulario rápido para mandar a Ranked Ready con precio -->
+                                <form action="{{ url_for('convertir_correo_ranked', id=correo.id) }}" method="POST" class="d-inline-flex align-items-center gap-1 justify-content-center">
+                                    <div class="input-group input-group-sm" style="width: 110px;">
+                                        <span class="input-group-text bg-secondary text-white border-secondary">$</span>
+                                        <input type="number" step="0.01" name="precio_ranked" class="form-control" placeholder="Precio" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success btn-sm" title="Enviar a Ranked Ready">
+                                        🚀 Ranked
+                                    </button>
+                                </form>
+
+                                <!-- Botón Eliminar -->
+                                <form method="POST" action="{{ url_for('eliminar_correo_inbox', id=correo.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar correo?');" class="ms-1">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar"><i class="fas fa-trash"></i></button>
                                 </form>
                             </td>
                         </tr>
@@ -79,3 +91,4 @@
     </div>
 </div>
 {% endblock %}
+```[cite: 4]
