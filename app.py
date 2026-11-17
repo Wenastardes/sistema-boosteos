@@ -389,12 +389,16 @@ def correos_inbox():
             correo = request.form.get('correo')
             password_correo = request.form.get('password_correo')
             proveedor = request.form.get('proveedor', 'inbox.eu')
-            notas = request.form.get('notas', '')
+            notas_usuario = request.form.get('notas', '').strip()
+            
+            # Si no pusieron nada en notas, ponemos el nombre del usuario actual de la sesión
+            usuario_actual = session.get('username', 'Anónimo')
+            notas_finales = notas_usuario if notas_usuario else f"Subido por: {usuario_actual}"
 
             cursor.execute('''
                 INSERT INTO correos_inbox (correo, password_correo, proveedor, notas)
                 VALUES (?, ?, ?, ?)
-            ''', (correo, password_correo, proveedor, notas))
+            ''', (correo, password_correo, proveedor, notas_finales))
             conexion.commit()
             flash('Correo registrado con éxito', 'success')
             return redirect(url_for('correos_inbox'))
@@ -511,7 +515,7 @@ def guardar_correo_api():
         correo = request.form.get('correo')
         password_correo = request.form.get('password_correo')
         proveedor = request.form.get('proveedor', 'inbox.eu')
-        notas = request.form.get('notas', '')
+        notas = request.form.get('notas', 'Bot local')
 
         if not correo or not password_correo:
             return jsonify({"status": "error", "mensaje": "Faltan datos obligatorios"}), 400
