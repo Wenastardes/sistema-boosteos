@@ -300,6 +300,42 @@ def todos_boosteos():
     finally:
         cursor.close()
         conexion.close()
+# ============================================================================
+# CONVERTIR CORREO INBOX A RANKED READY
+# ============================================================================
+
+@app.route('/correos-inbox/a-ranked/<int:id>', methods=['POST'])
+@login_required
+def convertir_correo_ranked(id):
+    precio = float(request.form.get('precio_ranked', 0.0) or 0.0)
+    conexion = crear_conexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos', 'error')
+        return redirect(url_for('correos_inbox'))
+    
+    cursor = conexion.cursor()
+    try:
+        # Obtenemos los datos del correo inbox
+        cursor.execute("SELECT * FROM correos_inbox WHERE id = ?", (id,))
+        correo_obj = cursor.fetchone()
+        
+        if correo_obj:
+            # Insertamos en cuentas_ranked con el precio indicado
+            cursor.execute('''
+                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, precio, estado, notas)
+                VALUES (?, ?, '', ?, 'No Usada', ?)
+            ''', (correo_obj['correo'], correo_obj['password_correo'], precio, correo_obj['notas']))
+            conexion.commit()
+            flash('¡Cuenta enviada a Ranked Ready con éxito!', 'success')
+        else:
+            flash('El correo no existe', 'error')
+    except Exception as e:
+        flash(f'Error al convertir cuenta: {e}', 'error')
+    finally:
+        cursor.close()
+        conexion.close()
+    
+    return redirect(url_for('correos_inbox'))
 
 # ============================================================================
 # SECCIÓN 1: CUENTAS RANKED READY
@@ -317,20 +353,29 @@ def cuentas_ranked_ready():
         if request.method == 'POST':
             correo_cuenta = request.form.get('correo_cuenta')
             password_cuenta = request.form.get('password_cuenta')
+            precio = float(request.form.get('precio', 0.0) or 0.0)
             estado = request.form.get('estado', 'No Usada')
             notas = request.form.get('notas', '')
 
             cursor.execute('''
-                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, estado, notas)
-                VALUES (?, ?, '', ?, ?)
-            ''', (correo_cuenta, password_cuenta, estado, notas))
+                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, precio, estado, notas)
+                VALUES (?, ?, '', ?, ?, ?)
+            ''', (correo_cuenta, password_cuenta, precio, estado, notas))
             conexion.commit()
             flash('Cuenta Ranked registrada correctamente', 'success')
             return redirect(url_for('cuentas_ranked_ready'))
 
         cursor.execute('SELECT * FROM cuentas_ranked ORDER BY fecha_creacion DESC')
         cuentas = cursor.fetchall()
-        return render_template('cuentas_ranked_ready.html', cuentas=cuentas)
+        
+        # Calcular el precio total solo de las cuentas que NO estén vendidas
+        total_precio_activo = sum(
+            float(c['precio'] or 0.0) 
+            for c in cuentas 
+            if c['estado'] != 'Vendida'
+        )
+
+        return render_template('cuentas_ranked_ready.html', cuentas=cuentas, total_precio_activo=total_precio_activo)
     finally:
         cursor.close()
         conexion.close()
@@ -441,6 +486,37 @@ def eliminar_correo_inbox(id):
     finally:
         cursor.close()
         conexion.close()
+
+@app.route('/correos-inbox/a-ranked/<int:id>', methods=['POST'])
+@login_required
+def convertir_correo_ranked(id):
+    precio = float(request.form.get('precio_ranked', 0.0) or 0.0)
+    conexion = crear_conexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos', 'error')
+        return redirect(url_for('correos_inbox'))
+    
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT * FROM correos_inbox WHERE id = ?", (id,))
+        correo_obj = cursor.fetchone()
+        
+        if correo_obj:
+            cursor.execute('''
+                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, precio, estado, notas)
+                VALUES (?, ?, '', ?, 'No Usada', ?)
+            ''', (correo_obj['correo'], correo_obj['password_correo'], precio, correo_obj['notas']))
+            conexion.commit()
+            flash('¡Cuenta enviada a Ranked Ready con éxito!', 'success')
+        else:
+            flash('El correo no existe', 'error')
+    except Exception as e:
+        flash(f'Error al convertir cuenta: {e}', 'error')
+    finally:
+        cursor.close()
+        conexion.close()
+    
+    return redirect(url_for('correos_inbox'))
 
 # ============================================================================
 # SECCIÓN 3: CUENTAS PARA VENDER
@@ -569,6 +645,18 @@ def inicializar_base_datos():
                 estado TEXT DEFAULT 'En Venta',
                 descripcion TEXT,
                 fecha_publicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS cuentas_ranked (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_cuenta TEXT NOT NULL,
+            password_cuenta TEXT NOT NULL,
+            nivel TEXT,
+            precio REAL DEFAULT 0.0,
+            estado TEXT DEFAULT 'No Usada',
+            notas TEXT,
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
