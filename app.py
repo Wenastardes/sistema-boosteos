@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta
@@ -300,42 +300,6 @@ def todos_boosteos():
     finally:
         cursor.close()
         conexion.close()
-# ============================================================================
-# CONVERTIR CORREO INBOX A RANKED READY
-# ============================================================================
-
-@app.route('/correos-inbox/a-ranked/<int:id>', methods=['POST'])
-@login_required
-def convertir_correo_ranked(id):
-    precio = float(request.form.get('precio_ranked', 0.0) or 0.0)
-    conexion = crear_conexion()
-    if not conexion:
-        flash('Error al conectar con la base de datos', 'error')
-        return redirect(url_for('correos_inbox'))
-    
-    cursor = conexion.cursor()
-    try:
-        # Obtenemos los datos del correo inbox
-        cursor.execute("SELECT * FROM correos_inbox WHERE id = ?", (id,))
-        correo_obj = cursor.fetchone()
-        
-        if correo_obj:
-            # Insertamos en cuentas_ranked con el precio indicado
-            cursor.execute('''
-                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, precio, estado, notas)
-                VALUES (?, ?, '', ?, 'No Usada', ?)
-            ''', (correo_obj['correo'], correo_obj['password_correo'], precio, correo_obj['notas']))
-            conexion.commit()
-            flash('¡Cuenta enviada a Ranked Ready con éxito!', 'success')
-        else:
-            flash('El correo no existe', 'error')
-    except Exception as e:
-        flash(f'Error al convertir cuenta: {e}', 'error')
-    finally:
-        cursor.close()
-        conexion.close()
-    
-    return redirect(url_for('correos_inbox'))
 
 # ============================================================================
 # SECCIÓN 1: CUENTAS RANKED READY
@@ -368,7 +332,6 @@ def cuentas_ranked_ready():
         cursor.execute('SELECT * FROM cuentas_ranked ORDER BY fecha_creacion DESC')
         cuentas = cursor.fetchall()
         
-        # Calcular el precio total solo de las cuentas que NO estén vendidas
         total_precio_activo = sum(
             float(c['precio'] or 0.0) 
             for c in cuentas 
@@ -408,39 +371,9 @@ def eliminar_cuenta_ranked(id):
     finally:
         cursor.close()
         conexion.close()
-# ============================================================================
-# API PARA EL BOT (Correos Inbox)
-# ============================================================================
 
-@app.route('/guardar-correo-api', methods=['POST'])
-def guardar_correo_api():
-    conexion = crear_conexion()
-    if not conexion:
-        return jsonify({"status": "error", "mensaje": "Error de conexión a la BD"}), 500
-    
-    cursor = conexion.cursor()
-    try:
-        correo = request.form.get('correo')
-        password_correo = request.form.get('password_correo')
-        proveedor = request.form.get('proveedor', 'inbox.eu')
-        notas = request.form.get('notas', '')
-
-        if not correo or not password_correo:
-            return jsonify({"status": "error", "mensaje": "Faltan datos obligatorios"}), 400
-
-        cursor.execute('''
-            INSERT INTO correos_inbox (correo, password_correo, proveedor, notas)
-            VALUES (?, ?, ?, ?)
-        ''', (correo, password_correo, proveedor, notas))
-        conexion.commit()
-        return jsonify({"status": "success", "mensaje": "Correo guardado con éxito"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "mensaje": str(e)}), 500
-    finally:
-        cursor.close()
-        conexion.close()
 # ============================================================================
-# SECCIÓN 2: CORREOS INBOX
+# SECCIÓN 2: CORREOS INBOX Y CONVERSIÓN RANKED (Individual y Masiva)
 # ============================================================================
 
 @app.route('/correos-inbox', methods=['GET', 'POST'])
@@ -483,6 +416,114 @@ def eliminar_correo_inbox(id):
         conexion.commit()
         flash('Correo eliminado del listado', 'success')
         return redirect(url_for('correos_inbox'))
+    finally:
+        cursor.close()
+        conexion.close()
+
+@app.route('/correos-inbox/a-ranked/<int:id>', methods=['POST'])
+@login_required
+def convertir_correo_ranked(id):
+    precio = float(request.form.get('precio_ranked', 0.0) or 0.0)
+    usuario_actual = session.get('username', 'Anónimo')
+    
+    conexion = crear_conexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos', 'error')
+        return redirect(url_for('correos_inbox'))
+    
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT * FROM correos_inbox WHERE id = ?", (id,))
+        correo_obj = cursor.fetchone()
+        
+        if correo_obj:
+            nota_final = f"{correo_obj['notas']} (Subido por: {usuario_actual})" if correo_obj['notas'] else f"Subido por: {usuario_actual}"
+            
+            cursor.execute('''
+                INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, precio, estado, notas)
+                VALUES (?, ?, '', ?, 'No Usada', ?)
+            ''', (correo_obj['correo'], correo_obj['password_correo'], precio, nota_final))
+            conexion.commit()
+            flash('¡Cuenta enviada a Ranked Ready con éxito!', 'success')
+        else:
+            flash('El correo no existe', 'error')
+    except Exception as e:
+        flash(f'Error al convertir cuenta: {e}', 'error')
+    finally:
+        cursor.close()
+        conexion.close()
+    
+    return redirect(url_for('correos_inbox'))
+
+@app.route('/correos-inbox/convertir-masivo', methods=['POST'])
+@login_required
+def convertir_masivo_ranked():
+    ids_seleccionados = request.form.getlist('seleccionados')
+    precio_general = float(request.form.get('precio_general', 0.0) or 0.0)
+    usuario_actual = session.get('username', 'Anónimo')
+
+    if not ids_seleccionados:
+        flash('No seleccionaste ningún correo', 'error')
+        return redirect(url_for('correos_inbox'))
+
+    conexion = crear_conexion()
+    if not conexion:
+        flash('Error al conectar con la base de datos', 'error')
+        return redirect(url_for('correos_inbox'))
+
+    cursor = conexion.cursor()
+    try:
+        contador = 0
+        for correo_id in ids_seleccionados:
+            cursor.execute("SELECT * FROM correos_inbox WHERE id = ?", (correo_id,))
+            correo_obj = cursor.fetchone()
+            if correo_obj:
+                nota_final = f"{correo_obj['notas']} (Subido por: {usuario_actual})" if correo_obj['notas'] else f"Subido por: {usuario_actual}"
+                
+                cursor.execute('''
+                    INSERT INTO cuentas_ranked (usuario_cuenta, password_cuenta, nivel, precio, estado, notas)
+                    VALUES (?, ?, '', ?, 'No Usada', ?)
+                ''', (correo_obj['correo'], correo_obj['password_correo'], precio_general, nota_final))
+                contador += 1
+        
+        conexion.commit()
+        flash(f'¡{contador} cuentas enviadas a Ranked Ready con éxito por {usuario_actual}!', 'success')
+    except Exception as e:
+        flash(f'Error en la conversión masiva: {e}', 'error')
+    finally:
+        cursor.close()
+        conexion.close()
+
+    return redirect(url_for('correos_inbox'))
+
+# ============================================================================
+# API PARA EL BOT (Correos Inbox)
+# ============================================================================
+
+@app.route('/guardar-correo-api', methods=['POST'])
+def guardar_correo_api():
+    conexion = crear_conexion()
+    if not conexion:
+        return jsonify({"status": "error", "mensaje": "Error de conexión a la BD"}), 500
+    
+    cursor = conexion.cursor()
+    try:
+        correo = request.form.get('correo')
+        password_correo = request.form.get('password_correo')
+        proveedor = request.form.get('proveedor', 'inbox.eu')
+        notas = request.form.get('notas', '')
+
+        if not correo or not password_correo:
+            return jsonify({"status": "error", "mensaje": "Faltan datos obligatorios"}), 400
+
+        cursor.execute('''
+            INSERT INTO correos_inbox (correo, password_correo, proveedor, notas)
+            VALUES (?, ?, ?, ?)
+        ''', (correo, password_correo, proveedor, notas))
+        conexion.commit()
+        return jsonify({"status": "success", "mensaje": "Correo guardado con éxito"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "mensaje": str(e)}), 500
     finally:
         cursor.close()
         conexion.close()
@@ -590,7 +631,8 @@ def inicializar_base_datos():
                 usuario_cuenta TEXT NOT NULL,
                 password_cuenta TEXT NOT NULL,
                 nivel TEXT,
-                estado TEXT DEFAULT 'Disponible',
+                precio REAL DEFAULT 0.0,
+                estado TEXT DEFAULT 'No Usada',
                 notas TEXT,
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -610,36 +652,31 @@ def inicializar_base_datos():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 titulo TEXT NOT NULL,
                 rango TEXT NOT NULL,
-                precio REAL NOT NULL,
+                precio REAL REAL NOT NULL,
                 estado TEXT DEFAULT 'En Venta',
                 descripcion TEXT,
                 fecha_publicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS cuentas_ranked (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_cuenta TEXT NOT NULL,
-            password_cuenta TEXT NOT NULL,
-            nivel TEXT,
-            precio REAL DEFAULT 0.0,
-            estado TEXT DEFAULT 'No Usada',
-            notas TEXT,
-            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
 
+        # Lista de usuarios actualizados (krefard como admin, xhariz agregado)
         usuarios_lista = [
-            {'u': 'admin', 'p': 'admin123', 'n': 'Administrador', 'a': 1},
+            {'u': 'krefard', 'p': 'krefard123', 'n': 'Administrador Krefard', 'a': 1},
+            {'u': 'xhariz', 'p': 'xhariz123', 'n': 'Xhariz', 'a': 0},
             {'u': 'nico', 'p': 'nico123', 'n': 'nico', 'a': 0},
             {'u': 'milcao', 'p': 'milcao123', 'n': 'milcao', 'a': 0},
             {'u': 'pache', 'p': 'pache123', 'n': 'pache', 'a': 0}
         ]
+        
         for user in usuarios_lista:
             cursor.execute("SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = ?", (user['u'],))
             if cursor.fetchone()[0] == 0:
                 h = hashlib.sha256(user['p'].encode()).hexdigest()
                 cursor.execute("INSERT INTO usuarios (nombre_usuario, password_hash, nombre_completo, es_admin) VALUES (?, ?, ?, ?)", (user['u'], h, user['n'], user['a']))
+        
+        # Opcional: Actualizar el usuario antiguo 'admin' si existiera a 'krefard'
+        cursor.execute("UPDATE usuarios SET nombre_usuario = 'krefard', password_hash = ? WHERE nombre_usuario = 'admin'", (hashlib.sha256('krefard123'.encode()).hexdigest(),))
+
         conexion.commit()
     except Exception as e:
         print(f"Error al inicializar DB: {e}")
